@@ -1,8 +1,8 @@
 [{
       "relation": ["delegate_permission/common.handle_all_urls"],
       "target": {
-        "namespace": "synth-wave-defense_app",
-        "package_name": "synth-wave-defense.twa",
+        "namespace": "android_app",
+        "package_name": "github.synth_wave_defense.twa",
         "sha256_cert_fingerprints": ["08:57:C3:B1:D9:35:69:69:BE:B8:49:86:B2:C1:FE:F5:BA:EF:82:1C:FA:D7:16:0D:B9:2C:DB:55:9B:C1:A3:9A"]
       }
     }]
