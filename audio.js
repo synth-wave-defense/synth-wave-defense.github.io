@@ -51,26 +51,29 @@ const SFX = (function () {
     return curve;
   }
 
-  function ensureCtx() {
+function ensureCtx() {
     if (ctx) return ctx;
     try {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return null;
       ctx = new AC();
 
+      // 1. Создание и настройка компрессора/лимитера
       comp = ctx.createDynamicsCompressor();
-      comp.threshold.value = -16;
-      comp.knee.value = 26;
-      comp.ratio.value = 9;
-      comp.attack.value = 0.003;
-      comp.release.value = 0.2;
+      comp.threshold.setValueAtTime(-14, ctx.currentTime);
+      comp.knee.setValueAtTime(12, ctx.currentTime);
+      comp.ratio.setValueAtTime(20, ctx.currentTime);
+      comp.attack.setValueAtTime(0.001, ctx.currentTime);
+      comp.release.setValueAtTime(0.12, ctx.currentTime);
 
+      // 2. Шины громкости
       master = ctx.createGain();
       master.gain.value = MASTER_VOLUME * volume;
 
       sfxBus = ctx.createGain();
       sfxBus.gain.value = 1;
 
+      // 3. Маршрутизация: sfxBus -> comp -> master -> destination
       sfxBus.connect(comp);
       comp.connect(master);
       master.connect(ctx.destination);
@@ -94,11 +97,12 @@ const SFX = (function () {
       distortionCurve = makeDistortionCurve(25);
       return ctx;
     } catch (e) {
+      console.warn('[Audio] Failed to initialize AudioContext:', e);
       ctx = null;
       return null;
     }
   }
-
+  
   function resume() {
     if (!ctx) return;
     try { if (ctx.state === 'suspended') ctx.resume(); } catch (e) { }

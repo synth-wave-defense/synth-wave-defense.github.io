@@ -50,7 +50,13 @@ const MusicManager = (function () {
     battle: [
 'music/battle_01.ogg',
 'music/battle_02.ogg',
-'music/battle_03.ogg'
+'music/battle_03.ogg',
+'music/battle_04.ogg',
+'music/battle_05.ogg',
+'music/battle_06.ogg',
+'music/battle_07.ogg',
+'music/battle_08.ogg',
+'music/battle_09.ogg',
     ],
     win: [
 'music/win.ogg'
@@ -66,8 +72,8 @@ const MusicManager = (function () {
   const CATEGORY = {
     menu:   { loop: true,  volume: 0.45, fadeIn: 1.2,  fadeOut: 0.8 },
     battle: { loop: true,  volume: 0.38, fadeIn: 0.9,  fadeOut: 0.6 },
-    win:    { loop: false, volume: 0.60, fadeIn: 0.05, fadeOut: 0.4 },
-    lose:   { loop: false, volume: 0.55, fadeIn: 0.05, fadeOut: 0.4 }
+    win:    { loop: true,  volume: 0.60, fadeIn: 0.05, fadeOut: 0.4 },
+    lose:   { loop: true,  volume: 0.55, fadeIn: 0.05, fadeOut: 0.4 }
   };
 
   const FADE_STEP_MS = 50;
@@ -76,12 +82,63 @@ const MusicManager = (function () {
 
   let enabled = true;
   let volume = 1;          // player's master music trim, 0..1
+  let ducked = false;      // menu/pause ducking state for in-battle music
+  const DUCK_FACTOR = 0.35;
+  const DUCK_FILTER_FREQ = 800;   // Hz low-pass cutoff when paused/ducked
+  const NORMAL_FILTER_FREQ = 20000; // Hz low-pass cutoff during normal playback
+
   let current = null;      // { el, category, cfg }
   let category = null;     // category currently requested
   let pending = null;      // category queued until the first user gesture
   let unlocked = false;
   let fadeTimer = null;
   let playlist = [];       // remaining shuffled tracks for a looping category
+
+  // Web Audio graph for filtering
+  let audioCtx = null;
+  let filterNode = null;
+  let masterGain = null;
+
+  function ensureAudioCtx() {
+    if (audioCtx) {
+      if (audioCtx.state === 'suspended') {
+        try { audioCtx.resume(); } catch (e) {}
+      }
+      return audioCtx;
+    }
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      audioCtx = new AC();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = 1.0;
+
+      filterNode = audioCtx.createBiquadFilter();
+      filterNode.type = 'lowpass';
+      filterNode.frequency.setValueAtTime(ducked ? DUCK_FILTER_FREQ : NORMAL_FILTER_FREQ, audioCtx.currentTime);
+
+      filterNode.connect(masterGain);
+      masterGain.connect(audioCtx.destination);
+      return audioCtx;
+    } catch (e) {
+      audioCtx = null;
+      filterNode = null;
+      masterGain = null;
+      return null;
+    }
+  }
+
+  function connectElementToWebAudio(el) {
+    if (!ensureAudioCtx()) return;
+    if (el._mediaSource) return;
+    try {
+      const source = audioCtx.createMediaElementSource(el);
+      source.connect(filterNode);
+      el._mediaSource = source;
+    } catch (e) {
+      // Fallback: if Web Audio routing fails, HTMLAudioElement plays directly
+    }
+  }
 
   function shuffle(list) {
     const a = list.slice();
@@ -139,7 +196,27 @@ const MusicManager = (function () {
 
   // --- Playback -----------------------------------------------------------
 
-  function levelFor(cfg) { return cfg.volume * volume; }
+  function levelFor(cfg) { return cfg.volume * volume * (ducked ? DUCK_FACTOR : 1.0); }
+
+  function setDucked(on, dur) {
+    ducked = !!on;
+    const duration = dur != null ? dur : 0.4;
+    const targetFreq = ducked ? DUCK_FILTER_FREQ : NORMAL_FILTER_FREQ;
+
+    ensureAudioCtx();
+    if (filterNode && audioCtx) {
+      try {
+        const now = audioCtx.currentTime;
+        filterNode.frequency.cancelScheduledValues(now);
+        filterNode.frequency.setValueAtTime(filterNode.frequency.value, now);
+        filterNode.frequency.exponentialRampToValueAtTime(Math.max(10, targetFreq), now + duration);
+      } catch (e) {
+        try { filterNode.frequency.value = targetFreq; } catch (err) {}
+      }
+    }
+
+    if (current) fadeTo(current.el, levelFor(current.cfg), duration);
+  }
 
   function startTrack(path, cat, cfg) {
     let el;
@@ -151,10 +228,25 @@ const MusicManager = (function () {
       el.volume = 0;
     } catch (e) { return null; }
 
+    connectElementToWebAudio(el);
+
     el.addEventListener('ended', function () {
       if (!current || current.el !== el) return;
       if (cfg.loop) {
-        advance(cat, cfg);
+        // For single-track categories (like win or lose), loop the same track directly
+        const catList = TRACKS[cat] || [];
+        if (catList.length === 1) {
+          try {
+            el.currentTime = 0;
+            const p = el.play();
+            if (p && typeof p.catch === 'function') p.catch(function () {});
+            fadeTo(el, levelFor(cfg), 0.1);
+          } catch (e) {
+            advance(cat, cfg);
+          }
+        } else {
+          advance(cat, cfg);
+        }
       } else {
         // A sting finished. Leave silence rather than guessing what follows --
         // the next screen transition will ask for whatever is right.
@@ -172,10 +264,12 @@ const MusicManager = (function () {
 
     const p = (function () { try { return el.play(); } catch (e) { return null; } })();
     if (p && typeof p.catch === 'function') {
-      p.catch(function () {
+      p.catch(function (err) {
         // Autoplay refused, almost always because no gesture has happened yet.
         // Remember the intent and replay it from unlock().
-        pending = cat;
+        if (!unlocked || (err && err.name === 'NotAllowedError')) {
+          pending = cat;
+        }
       });
     }
 
@@ -212,7 +306,29 @@ const MusicManager = (function () {
       return;
     }
 
-    if (category === cat && current) return;
+    // Always restore ducking state when requesting a category
+    if (ducked) {
+      setDucked(false, 0.4);
+    }
+
+    if (category === cat && current) {
+      // Category is already requested and current exists
+      if (current.el.paused) {
+        const p = (function () { try { return current.el.play(); } catch (e) { return null; } })();
+        if (p && typeof p.catch === 'function') {
+          p.catch(function () {
+            startCategoryFresh(cat, cfg, list);
+          });
+        }
+      }
+      fadeTo(current.el, levelFor(cfg), cfg.fadeIn || 0.4);
+      return;
+    }
+
+    startCategoryFresh(cat, cfg, list);
+  }
+
+  function startCategoryFresh(cat, cfg, list) {
     category = cat;
 
     if (!enabled) return;
@@ -236,6 +352,7 @@ const MusicManager = (function () {
 
     play: playCategory,
     current: function () { return category; },
+    setDucked: function (on, dur) { setDucked(on, dur); },
 
     stop: function (fadeOut) {
       category = null;
@@ -244,7 +361,9 @@ const MusicManager = (function () {
     },
 
     setEnabled: function (on) {
-      enabled = !!on;
+      const next = !!on;
+      if (enabled === next) return;
+      enabled = next;
       if (!enabled) {
         pending = category;
         stopCurrent(0.35);
@@ -267,25 +386,35 @@ const MusicManager = (function () {
     // refuse to start audio before one, so whatever category was requested
     // during the loading screen is held in `pending` and released here.
     unlock: function () {
-      if (unlocked) return;
-      unlocked = true;
+      ensureAudioCtx();
+      if (!unlocked) {
+        unlocked = true;
+      }
       const want = pending || category;
       if (want && enabled) {
         pending = null;
-        category = null;
-        playCategory(want);
+        if (!current || current.el.paused) {
+          category = null;
+          playCategory(want);
+        }
       }
     },
 
     // WebView suspends but does not always pause media when the app goes to the
     // background; without this, music keeps playing over the launcher.
     suspend: function () {
+      if (audioCtx && audioCtx.state === 'running') {
+        try { audioCtx.suspend(); } catch (e) {}
+      }
       if (current) { try { current.el.pause(); } catch (e) { } }
     },
     resume: function () {
+      ensureAudioCtx();
       if (current && enabled) {
-        const p = (function () { try { return current.el.play(); } catch (e) { return null; } })();
-        if (p && typeof p.catch === 'function') p.catch(function () { });
+        if (current.el.paused) {
+          const p = (function () { try { return current.el.play(); } catch (e) { return null; } })();
+          if (p && typeof p.catch === 'function') p.catch(function () { });
+        }
       }
     },
 
@@ -306,6 +435,9 @@ const MusicManager = (function () {
       const report = {
         enabled: enabled,
         unlocked: unlocked,
+        ducked: ducked,
+        audioCtxState: audioCtx ? audioCtx.state : 'null',
+        filterFreq: filterNode ? Math.round(filterNode.frequency.value) : null,
         requestedCategory: category,
         pendingCategory: pending,
         trackCounts: counts,

@@ -158,9 +158,9 @@
 
       <div class="badge-divider"></div>
 
-      <div class="badge-half" id="hpHalf" onclick="handleDevHpClick()">
-        <div class="hud-icon" style="filter: drop-shadow(0 0 7px rgba(255,42,133,.9));">
-          <div style="width:13px; height:12px; background:#ff2a85; clip-path:polygon(50% 100%, 4% 42%, 4% 18%, 26% 2%, 50% 20%, 74% 2%, 96% 18%, 96% 42%);"></div>
+<div class="badge-half" id="hpHalf" onclick="handleDevHpClick()">
+        <div class="hud-icon" style="filter: drop-shadow(0 0 7px rgba(240,95,159,.9));">
+          <div style="width:13px; height:12px; background:#f05f9f; clip-path:polygon(50% 100%, 4% 42%, 4% 18%, 26% 2%, 50% 20%, 74% 2%, 96% 18%, 96% 42%);"></div>
         </div>
         <span class="stat-val-text" id="hpVal">10</span>
       </div>
@@ -169,8 +169,8 @@
 
   <span class="hud-chapter-label hidden" id="startChapterLabel">CHAPTER 1</span>
 
-  <div class="hud-right-group hidden" id="hudRightGroup">
-    <div class="hud-split-badge" id="levelWaveSplitBadge">
+<div class="hud-right-group" id="hudRightGroup">
+    <div class="hud-split-badge hidden" id="levelWaveSplitBadge">
       <div class="badge-half" id="levelHalf">
         <span class="match-val-text hud-static-label">LVL</span>
         <span class="match-val-text" id="levelText">1</span>
@@ -184,10 +184,10 @@
         <select id="devWaveSelect" class="hud-select-dropdown hidden" onchange="devJumpToWave(parseInt(this.value, 10))"></select>
       </div>
     </div>
-    <button class="hud-pause-btn" onclick="togglePause()" title="Pause Menu">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-        <rect x="7" y="4" width="3.5" height="16" rx="1.75" />
-        <rect x="13.5" y="4" width="3.5" height="16" rx="1.75" />
+   <button class="hud-gear-btn" id="hudSettingsBtn" onclick="handleHudSettingsClick()" title="Settings & Pause">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="hud-gear-svg">
+        <circle cx="12" cy="12" r="3.2"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
       </svg>
     </button>
   </div>
@@ -235,17 +235,17 @@
     <!-- Inspector Panel (Visual Direction 3G) -->
     <div class="controls-panel hidden" id="inspectPanel">
       <div class="selected-info">
-        <div class="selected-icon-box" id="inspectIconBox"></div>
-        <div class="selected-texts">
-          <span class="selected-title" id="inspectName">Gatling</span>
-          <span class="selected-stats" id="inspectStatDamage">LV.1 · DMG 16</span>
-          <div class="selected-level-bars" id="inspectLevelBars">
-            <div class="level-bar-seg" id="lvlBar1"></div>
-            <div class="level-bar-seg" id="lvlBar2"></div>
-            <div class="level-bar-seg" id="lvlBar3"></div>
-          </div>
-        </div>
+       <div class="selected-icon-box" id="inspectIconBox"></div>
+       <div class="selected-texts">
+        <span class="selected-title" id="inspectName">Gatling</span>
+        <span class="selected-lvl-text" id="inspectLvlText">LVL 1</span>
+        <div class="selected-level-bars" id="inspectLevelBars">
+         <div class="level-bar-seg" id="lvlBar1"></div>
+         <div class="level-bar-seg" id="lvlBar2"></div>
+        <div class="level-bar-seg" id="lvlBar3"></div>
+       </div>
       </div>
+    </div>
 
       <button class="btn-upgrade" id="inspectUpgradeBtn" onclick="upgradeSelectedTower()">
         <span class="upg-btn-title">
@@ -302,65 +302,56 @@
   <option value="8">8x</option>
 </select>
 
-<button class="dev-live-pause-floating hidden" id="livePauseBtn" onclick="toggleLivePause()">
-  <span>⏸ Pause</span>
-</button>
-
 <button class="dev-clearsave-floating hidden" id="devClearSaveBtn" onclick="handleClearSaveClick()" title="Wipe localStorage and reset all progress to a fresh install">
   <span>🗑 Clear Save</span>
 </button>
 
-<!-- Custom Spawner (Dev Mode) -->
-<div class="dev-custom-spawner hidden" id="devCustomSpawner" style="position: fixed; top: max(212px, calc(env(safe-area-inset-top) + 200px)); right: max(16px, env(safe-area-inset-right)); width: 205px; background: rgba(12, 16, 29, 0.94); border: 1.5px solid #00e5ff; border-radius: 10px; padding: 12px; z-index: 9999; backdrop-filter: blur(8px); box-shadow: 0 4px 18px rgba(0, 0, 0, 0.75), 0 0 12px rgba(0, 229, 255, 0.25); display: flex; flex-direction: column; gap: 10px; font-family: 'Montserrat', sans-serif; pointer-events: auto;">
-  <div style="font-size: 11px; font-weight: 900; color: #00e5ff; text-align: center; letter-spacing: 1px;">CUSTOM SPAWN</div>
-  
-  <div style="display: flex; justify-content: space-between; align-items: center;">
-    <span style="font-size: 10px; color: #8ef3ff; font-weight: 700;">Mob</span>
-    <select id="devSpawnType" onfocus="suppressBackgroundPause(1500)" onchange="suppressBackgroundPause(1500)" onblur="suppressBackgroundPause()" style="background: #090c17; color: #fff; border: 1px solid #283354; border-radius: 4px; font-size: 10px; font-family: inherit; padding: 3px; width: 125px; outline: none;">
-      <option value="grunt">Grunt</option>
-      <option value="scout">Scout</option>
-      <option value="tank">Tank</option>
-      <option value="swarm">Swarm</option>
-      <option value="blinker">Blinker</option>
-      <option value="goliath">Goliath</option>
-      <option value="emp_bomber">EMP Bomber</option>
-      <option value="hive_empress">Hive Empress</option>
-      <option value="chronos_warp">Chronos Warp</option>
-      <option value="titan_core">Titan Core</option>
-      <option value="emp_overlord">EMP Overlord</option>
-    </select>
-  </div>
-  
-  <div style="display: flex; justify-content: space-between; align-items: center;">
-    <span style="font-size: 10px; color: #8ef3ff; font-weight: 700;">Count</span>
-    <input type="number" id="devSpawnCount" value="1" min="1" onfocus="suppressBackgroundPause(1500)" onchange="suppressBackgroundPause(1500)" onblur="suppressBackgroundPause()" style="background: #090c17; color: #fff; border: 1px solid #283354; border-radius: 4px; font-size: 10px; font-family: inherit; padding: 3px; width: 50px; text-align: center; outline: none;">
-  </div>
-  
-  <div style="display: flex; justify-content: space-between; align-items: center;">
-    <span style="font-size: 10px; color: #8ef3ff; font-weight: 700;">Interval</span>
-    <input type="number" id="devSpawnInterval" value="0.5" step="0.1" min="0" onfocus="suppressBackgroundPause(1500)" onchange="suppressBackgroundPause(1500)" onblur="suppressBackgroundPause()" style="background: #090c17; color: #fff; border: 1px solid #283354; border-radius: 4px; font-size: 10px; font-family: inherit; padding: 3px; width: 50px; text-align: center; outline: none;">
-  </div>
-  
-  <div style="display: flex; justify-content: space-between; align-items: center;">
-    <span style="font-size: 10px; color: #8ef3ff; font-weight: 700;">HP</span>
-    <div style="display: flex; gap: 4px; align-items: center;">
-      <input type="number" id="devSpawnHpMult" value="1.0" step="0.1" min="0.1" title="Множитель HP" onfocus="suppressBackgroundPause(1500)" onchange="suppressBackgroundPause(1500)" onblur="suppressBackgroundPause()" style="background: #090c17; color: #fff; border: 1px solid #283354; border-radius: 4px; font-size: 10px; font-family: inherit; padding: 3px; width: 44px; text-align: center; outline: none;">
-      <span style="font-size: 9px; color: #8ef3ff;">x</span>
-      <input type="number" id="devSpawnHpAbs" value="40" min="1" title="Абсолютное HP" onfocus="suppressBackgroundPause(1500)" onchange="suppressBackgroundPause(1500)" onblur="suppressBackgroundPause()" style="background: #090c17; color: #fff; border: 1px solid #283354; border-radius: 4px; font-size: 10px; font-family: inherit; padding: 3px; width: 54px; text-align: center; outline: none;">
+<!-- Dev Mode Bar (Compact + Expandable) -->
+  <div class="dev-bar hidden" id="devBar">
+    <div class="dev-bar-top">
+      <div class="dev-fps-badge" id="devFpsBadge">FPS: 60</div>
+      
+      <button type="button" class="dev-icon-btn dev-speed-step-btn" onclick="stepDevSpeed(-1)" title="Decrease speed">−</button>
+      
+      <select id="speedContainer" class="dev-speed-select" onchange="setGameSpeed(parseFloat(this.value))">
+        <option value="1">1x</option>
+        <option value="1.5">1.5x</option>
+        <option value="2">2x</option>
+        <option value="4">4x</option>
+        <option value="8">8x</option>
+      </select>
+
+      <button type="button" class="dev-icon-btn dev-speed-step-btn" onclick="stepDevSpeed(1)" title="Increase speed">+</button>
+
+      <button type="button" class="dev-icon-btn" id="devExpandBtn" onclick="toggleDevPanelExpand()" title="Details">▾</button>
+      <button type="button" class="dev-icon-btn dev-close-btn" onclick="closeDevMode()" title="Close Dev Mode">✕</button>
+    </div>
+
+    <!-- Выпадающая часть с полными инструментами -->
+    <div class="dev-details-pane hidden" id="devDetailsPane">
+      <div class="dev-actions-row">
+        <button type="button" class="dev-btn" id="livePauseBtn" onclick="toggleLivePause()">PAUSE GAME</button>
+        <button type="button" class="dev-btn dev-danger-btn" id="devClearSaveBtn" onclick="handleClearSaveClick()">CLEAR SAVE</button>
+      </div>
+
+      <div class="dev-spawner-sub" id="devCustomSpawner">
+        <div class="dev-sub-title">SPAWNER</div>
+        <div class="dev-spawner-grid">
+          <select id="devSpawnType">
+            <option value="grunt">Grunt</option>
+            <option value="scout">Scout</option>
+            <option value="tank">Tank</option>
+            <option value="swarm">Swarm</option>
+            <option value="blinker">Blinker</option>
+            <option value="goliath">Goliath</option>
+            <option value="boss">Boss</option>
+          </select>
+          <input type="number" id="devSpawnCount" min="1" max="50" value="5" title="Count">
+          <button type="button" class="dev-btn" onclick="devSpawnCustomEnemies()">SPAWN</button>
+        </div>
+      </div>
     </div>
   </div>
-  
-  <div style="display: flex; justify-content: space-between; align-items: center;">
-    <span style="font-size: 10px; color: #8ef3ff; font-weight: 700;">Speed</span>
-    <div style="display: flex; gap: 4px; align-items: center;">
-      <input type="number" id="devSpawnSpeedMult" value="1.0" step="0.1" min="0.1" title="Множитель скорости" onfocus="suppressBackgroundPause(1500)" onchange="suppressBackgroundPause(1500)" onblur="suppressBackgroundPause()" style="background: #090c17; color: #fff; border: 1px solid #283354; border-radius: 4px; font-size: 10px; font-family: inherit; padding: 3px; width: 44px; text-align: center; outline: none;">
-      <span style="font-size: 9px; color: #8ef3ff;">x</span>
-      <input type="number" id="devSpawnSpeedAbs" value="55" min="1" title="Абсолютная скорость (px/s)" onfocus="suppressBackgroundPause(1500)" onchange="suppressBackgroundPause(1500)" onblur="suppressBackgroundPause()" style="background: #090c17; color: #fff; border: 1px solid #283354; border-radius: 4px; font-size: 10px; font-family: inherit; padding: 3px; width: 54px; text-align: center; outline: none;">
-    </div>
-  </div>
-  
-  <button onclick="handleDevSpawnClick()" onmousedown="this.style.transform='scale(0.96)'" onmouseup="this.style.transform='none'" onmouseleave="this.style.transform='none'" style="background: linear-gradient(rgba(0, 229, 255, 0.28), rgba(0, 229, 255, 0.06)), rgba(8, 12, 24, 0.92); border: 1px solid #00e5ff; color: #fff; border-radius: 6px; padding: 8px; font-family: inherit; font-weight: 900; font-size: 11px; cursor: pointer; text-transform: uppercase; margin-top: 4px; transition: all 0.2s ease;">SPAWN</button>
-</div>
 
 <!-- Start Screen -->
 <div class="overlay-screen transparent-bg" id="startScreen">
@@ -371,9 +362,9 @@
     </div>
 
     <div class="start-screen-buttons-zone">
-      <button class="menu-btn-primary-capsule seq-in" style="animation-delay:.30s;" onclick="showLevelSelect()"><span>START</span></button>
-      <button class="menu-btn-glass-capsule seq-in" style="animation-delay:.38s;" id="mainUpgradesBtn" onclick="showUpgradesScreen('main')"><span>TECH TREE</span></button>
-      <button class="menu-btn-glass-capsule seq-in" style="animation-delay:.46s;" onclick="showSettings()"><span>SETTINGS</span></button>
+      <button class="menu-btn-primary-capsule seq-in" onclick="showLevelSelect()"><span>START</span></button>
+      <button class="menu-btn-glass-capsule seq-in" id="mainUpgradesBtn" onclick="showUpgradesScreen('main')"><span>TECH TREE</span></button>
+      <button class="menu-btn-glass-capsule seq-in" onclick="showShopScreen('start')"><span>GIFTS & SHOP</span></button>
     </div>
   </div>
 </div>
@@ -381,58 +372,216 @@
 <!-- Upgrades Screen -->
 <div class="overlay-screen transparent-bg upgrades-bg hidden" id="upgradesScreen">
   <div class="upgrades-content-col">
-    <div class="upgrades-top-bar">
-      <span class="upgrades-top-label">TECH TREE</span>
-      <div class="levels-top-diamonds">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" stroke-linejoin="round">
-          <polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)"/>
-          <polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/>
-        </svg>
-        <span id="upgradesDiamondVal">0</span>
-      </div>
-    </div>
+   <div class="upgrades-top-bar">
+    <div class="levels-top-diamonds">
+     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" stroke-linejoin="round">
+       <polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)"/>
+       <polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/>
+     </svg>
+     <span id="upgradesDiamondVal">0</span>
+   </div>
+  <span class="upgrades-top-label">TECH TREE</span>
+</div>
     <div class="upgrades-row-list" id="upgradesTreeBody"></div>
     <button class="menu-btn-glass-capsule upgrades-back-btn" onclick="closeUpgradesScreen()"><span>BACK</span></button>
   </div>
 </div>
 
-<!-- Settings Screen -->
-<div class="overlay-screen hidden" id="settingsScreen">
-  <div class="menu-title">SETTINGS</div>
-  <div class="settings-box">
-    <div class="setting-row">
-      <span>Enemy Health Bar</span>
-      <label class="switch">
-        <input type="checkbox" id="settingShowHp" checked onchange="toggleSettingHp(this.checked)">
-        <span class="slider"></span>
-      </label>
-    </div>
-    <div class="setting-row">
-      <span>Performance Mode</span>
-      <label class="switch">
-        <input type="checkbox" id="settingPerfMode" onchange="toggleSettingPerf(this.checked)">
-        <span class="slider"></span>
-      </label>
-    </div>
-    <div class="setting-row disabled"><span>Vibration</span><label class="switch"><input type="checkbox" disabled><span class="slider"></span></label></div>
-    <div class="setting-row setting-row-slider">
-      <div class="setting-slider-head">
-        <span>Music Audio</span>
-        <span class="setting-slider-val" id="musicVolLabel">70%</span>
+<!-- Gifts & Shop Screen -->
+<div class="overlay-screen transparent-bg upgrades-bg hidden" id="shopScreen">
+  <div class="upgrades-content-col">
+    <div class="upgrades-top-bar">
+      <div class="levels-top-diamonds">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" stroke-linejoin="round">
+          <polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)"/>
+          <polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/>
+        </svg>
+        <span id="shopDiamondVal">0</span>
       </div>
-      <input type="range" class="vol-range" id="settingMusicVol" min="0" max="100" step="5" value="70"
-             oninput="setMusicVolume(this.value)">
+      <span class="upgrades-top-label">GIFTS & SHOP</span>
     </div>
-    <div class="setting-row setting-row-slider">
-      <div class="setting-slider-head">
-        <span>Sound Effects</span>
-        <span class="setting-slider-val" id="sfxVolLabel">100%</span>
+
+    <div class="upgrades-row-list" id="shopBodyList">
+      
+      <!-- Section 1: Daily Gifts -->
+      <div class="upgrades-row-group-label">Daily Gifts</div>
+      <div class="shop-card-highlight">
+        <div class="shop-card-left">
+          <div class="shop-card-icon diamond-glow">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2">
+              <polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.3)"/>
+              <polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/>
+            </svg>
+          </div>
+          <div class="shop-card-info">
+            <span class="shop-card-title">+5 Diamonds</span>
+            <span class="shop-card-sub" id="dailyGiftSubText">Claimed today: 0/3 packs</span>
+          </div>
+        </div>
+        <button id="dailyGiftClaimBtn" class="shop-item-btn shop-btn-free" onclick="claimDailyGiftsPack()">
+          <span>FREE</span>
+        </button>
       </div>
-      <input type="range" class="vol-range" id="settingSfxVol" min="0" max="100" step="5" value="100"
-             oninput="setSfxVolume(this.value)">
+
+      <!-- Section 2: Permanent Perks -->
+      <div class="upgrades-row-group-label">Special Perks</div>
+      <div class="shop-card">
+        <div class="shop-card-left">
+          <div class="shop-card-icon gold-glow">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+            </svg>
+          </div>
+          <div class="shop-card-info">
+            <span class="shop-card-title">No Voluntary Ads</span>
+            <span class="shop-card-sub">Instant x2, Revives & Daily Gifts</span>
+          </div>
+        </div>
+        <button id="noAdsBuyBtn" class="shop-item-btn shop-btn-buy" onclick="buyShopIAP('no_ads')">
+          <span>$1.99</span>
+        </button>
+      </div>
+
+      <!-- Section 3: Diamond Packs -->
+      <div class="upgrades-row-group-label">Diamond Bundles</div>
+      
+      <div class="shop-card">
+        <div class="shop-card-left">
+          <div class="shop-card-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2">
+              <polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.2)"/>
+            </svg>
+          </div>
+          <div class="shop-card-info">
+            <span class="shop-card-title">Pouch of Diamonds</span>
+            <span class="shop-card-sub">+50 Diamonds</span>
+          </div>
+        </div>
+        <button class="shop-item-btn shop-btn-buy" onclick="buyShopIAP('diamonds_50')">
+          <span>$0.49</span>
+        </button>
+      </div>
+
+      <div class="shop-card">
+        <div class="shop-card-left">
+          <div class="shop-card-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2">
+              <polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.3)"/>
+            </svg>
+          </div>
+          <div class="shop-card-info">
+            <span class="shop-card-title">Bag of Diamonds</span>
+            <span class="shop-card-sub">+100 Diamonds</span>
+          </div>
+        </div>
+        <button class="shop-item-btn shop-btn-buy" onclick="buyShopIAP('diamonds_100')">
+          <span>$0.89</span>
+        </button>
+      </div>
+
+      <div class="shop-card shop-card-best">
+        <div class="shop-card-left">
+          <div class="shop-card-icon diamond-glow">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.4">
+              <polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.45)"/>
+              <polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/>
+            </svg>
+          </div>
+          <div class="shop-card-info">
+            <span class="shop-card-title">Chest of Diamonds <span class="shop-badge">BEST VALUE</span></span>
+            <span class="shop-card-sub">+500 Diamonds</span>
+          </div>
+        </div>
+        <button class="shop-item-btn shop-btn-buy" onclick="buyShopIAP('diamonds_500')">
+          <span>$3.49</span>
+        </button>
+      </div>
+
     </div>
+    
+    <button class="menu-btn-glass-capsule upgrades-back-btn" onclick="closeShopScreen()"><span>BACK</span></button>
   </div>
-  <button class="menu-btn" onclick="closeSettings()"><span>BACK</span></button>
+</div>
+
+<!-- Settings & Pause Screen -->
+<div class="overlay-screen result-screen hidden" id="settingsScreen">
+  <div class="result-stack">
+    <div class="result-heading seq-in">
+      <div class="result-kicker" id="settingsKicker">Game</div>
+      <div class="result-title" id="settingsTitle">Paused</div>
+    </div>
+    
+    <!-- 1. Боевые действия (вверху) -->
+    <div class="settings-combat-actions hidden" id="settingsCombatActions">
+      <button class="result-btn result-btn-primary" onclick="closeSettings()"><span>RESUME</span></button>
+      <button class="result-btn" onclick="retryLevel()"><span>RETRY</span></button>
+      <button class="result-btn" onclick="giveUpMatch()"><span>GIVE UP</span></button>
+    </div>
+
+    <!-- 2. Виджет Loadout (между кнопками и настройками) -->
+    <div class="loadout-anchor" id="loadoutAnchor-pause"></div>
+
+    <!-- 3. Сворачиваемый блок системных настроек -->
+    <div class="settings-collapsible-widget" id="settingsCollapsible">
+      <div class="settings-collapsible-header" onclick="toggleSettingsAccordion()">
+        <span class="settings-collapsible-label">Settings</span>
+        <span class="settings-collapsible-arrow" id="settingsArrow">▾</span>
+      </div>
+
+      <div class="settings-collapsible-body hidden" id="settingsBody">
+        <div class="settings-box">
+          <div class="setting-row">
+            <span>Enemy Health Bar</span>
+            <label class="switch">
+              <input type="checkbox" id="settingShowHp" checked onchange="toggleSettingHp(this.checked)">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <span>Show Damage</span>
+            <label class="switch">
+              <input type="checkbox" id="settingShowDamage" checked onchange="toggleSettingDamage(this.checked)">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <span>Performance Mode</span>
+            <label class="switch">
+              <input type="checkbox" id="settingPerfMode" onchange="toggleSettingPerf(this.checked)">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <span>Vibration</span>
+            <label class="switch">
+              <input type="checkbox" id="settingVibration" checked onchange="toggleSettingVibration(this.checked)">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-row setting-row-slider">
+            <div class="setting-slider-head">
+              <span>Music Audio</span>
+              <span class="setting-slider-val" id="musicVolLabel">70%</span>
+            </div>
+            <input type="range" class="vol-range" id="settingMusicVol" min="0" max="100" step="5" value="70"
+                   oninput="setMusicVolume(this.value)">
+          </div>
+          <div class="setting-row setting-row-slider">
+            <div class="setting-slider-head">
+              <span>Sound Effects</span>
+              <span class="setting-slider-val" id="sfxVolLabel">100%</span>
+            </div>
+            <input type="range" class="vol-range" id="settingSfxVol" min="0" max="100" step="5" value="100"
+                   oninput="setSfxVolume(this.value)">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Кнопка Back (когда открыто из главного меню) -->
+    <button class="menu-btn-glass-capsule" id="settingsBackBtn" onclick="closeSettings()"><span>BACK</span></button>
+  </div>
 </div>
 
 <!-- Levels Selection Screen -->
@@ -468,11 +617,29 @@
 <!-- Shared "Towers Selected" loadout widget -->
 <div class="loadout-widget hidden" id="loadoutWidget">
   <div class="loadout-widget-header" onclick="toggleLoadoutWidgetExpanded()">
-    <span class="loadout-widget-label">Towers Selected <span class="loadout-widget-count" id="loadoutWidgetCount">0/3</span></span>
-    <div class="loadout-widget-mini-icons" id="loadoutWidgetMiniIcons"></div>
+    <span class="loadout-widget-label">TOWERS SELECTED</span>
+    <div class="loadout-widget-right">
+      <div class="loadout-widget-mini-icons" id="loadoutWidgetMiniIcons"></div>
+      <span class="loadout-widget-count hidden" id="loadoutWidgetCount">0/3</span>
+      <span class="loadout-widget-arrow" id="loadoutArrow">▾</span>
+    </div>
   </div>
   <div class="loadout-widget-expanded hidden" id="loadoutWidgetExpanded">
     <div class="loadout-grid" id="loadoutWidgetGrid"></div>
+  </div>
+</div>
+
+<!-- Give Up Confirmation Modal -->
+<div class="overlay-screen result-screen hidden" id="giveUpConfirmModal" style="z-index: 10000;">
+  <div class="result-stack" style="background: rgba(10, 14, 28, 0.95); border: 1px solid rgba(0, 229, 255, 0.3); border-radius: 16px; padding: 24px; max-width: 320px;">
+    <div class="result-heading seq-in" style="margin-bottom: 12px;">
+      <div class="result-title" style="font-size: 24px;">Are you sure?</div>
+    </div>
+    <div class="result-subline" style="text-align: center; margin-bottom: 16px; color: #94a3b8;">
+      Progress in battle will be lost.
+    </div>
+    <button class="result-btn result-btn-primary" onclick="confirmGiveUp()"><span>Give Up</span></button>
+    <button class="result-btn" onclick="cancelGiveUp()" style="margin-top: 8px;"><span>Cancel</span></button>
   </div>
 </div>
 
@@ -485,8 +652,9 @@
     </div>
     <button class="result-btn result-btn-primary seq-in seq-d1" onclick="togglePause()"><span>RESUME</span></button>
     <button class="result-btn seq-in seq-d2" onclick="retryLevel()"><span>RETRY</span></button>
-    <button class="result-btn seq-in seq-d2" onclick="showLevelSelectFromGame()"><span>LEVELS</span></button>
-    <div class="loadout-anchor seq-in seq-d3" id="loadoutAnchor-pause"></div>
+    <button class="result-btn seq-in seq-d2" onclick="giveUpMatch()"><span>GIVE UP</span></button>
+    <button class="result-btn seq-in seq-d3" onclick="showSettings('pause')"><span>SETTINGS</span></button>
+    <div class="loadout-anchor seq-in seq-d4" id="loadoutAnchor-pause"></div>
   </div>
 </div>
 
@@ -510,7 +678,7 @@
   </div>
 </div>
 
-<!-- Victory Screen (Visual Direction 9A) -->
+<!-- Victory Screen -->
 <div class="overlay-screen result-screen hidden" id="victoryScreen">
   <div class="result-stack">
     <div class="result-heading seq-in">
@@ -530,10 +698,12 @@
       <svg width="15" height="15" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="3" fill="none" stroke="#ffffff" stroke-width="2"/><polygon points="10,9 16,12 10,15" fill="#ffffff"/></svg>
       <span>CLAIM x2</span>
     </button>
-    <button class="result-btn seq-in seq-d5" onclick="nextLevel()"><span>NEXT LEVEL</span></button>
-    <button class="result-btn seq-in seq-d5" id="victoryUpgradesBtn" onclick="showUpgradesScreen('victory')"><span>TECH TREE</span></button>
+    <button class="result-btn seq-in seq-d4" onclick="nextLevel()"><span>NEXT LEVEL</span></button>
     <button class="result-btn seq-in seq-d5" onclick="retryLevel()"><span>RETRY</span></button>
+    <button class="result-btn seq-in seq-d5" id="victoryUpgradesBtn" onclick="showUpgradesScreen('victory')"><span>TECH TREE</span></button>
     <button class="result-btn seq-in seq-d5" onclick="showLevelSelectFromGame()"><span>LEVELS</span></button>
+    <button class="result-btn seq-in seq-d6" onclick="showShopScreen('victory')"><span>GIFTS & SHOP</span></button>
+
     <div class="loadout-anchor seq-in seq-d6" id="loadoutAnchor-victory"></div>
   </div>
 </div>
@@ -542,7 +712,7 @@
   <div class="menu-title" style="font-size: 22px;">AD PLAYING...</div>
 </div>
 
-<!-- Defeat Screen (Visual Direction 9B, and 9E while the revive window is open) -->
+<!-- Defeat Screen -->
 <div class="overlay-screen result-screen is-fail hidden" id="defeatScreen">
   <div class="defeat-flash" id="defeatFlash"></div>
   <div class="result-stack">
@@ -551,6 +721,7 @@
       <div class="result-title" data-text="Failed">Failed</div>
     </div>
     <div class="result-subline seq-in seq-d1" id="defeatWaveLine">WAVE 1 OF 1 REACHED</div>
+    
     <button class="result-btn result-btn-primary hidden" id="reviveBtn" onclick="acceptEmergencyRevive()">
       <svg width="15" height="15" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="3" fill="none" stroke="#ffffff" stroke-width="2"/><polygon points="10,9 16,12 10,15" fill="#ffffff"/></svg>
       <span id="reviveBtnLabel">REVIVE (3s)</span>
@@ -559,11 +730,13 @@
     <button class="result-btn seq-in seq-d2" id="defeatRetryBtn" onclick="retryLevel()"><span>RETRY</span></button>
     <button class="result-btn seq-in seq-d2" id="defeatUpgradesBtn" onclick="showUpgradesScreen('defeat')"><span>TECH TREE</span></button>
     <button class="result-btn seq-in seq-d2" id="defeatLevelsBtn" onclick="showLevelSelectFromGame()"><span>LEVELS</span></button>
+    <button class="result-btn seq-in seq-d3" id="defeatShopBtn" onclick="showShopScreen('defeat')"><span>GIFTS & SHOP</span></button>
     <div class="loadout-anchor seq-in seq-d3" id="loadoutAnchor-defeat"></div>
   </div>
 </div>
 
 <script src="data.js"></script>
+<script src="levels_data.js"></script>
 <script src="engine.js"></script>
 <script src="ui.js"></script>
 <script>
