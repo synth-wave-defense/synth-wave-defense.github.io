@@ -24,18 +24,21 @@
 <!--   _tracks(). This was a broken TEST, not broken code. -->
 <!DOCTYPE html>
 
-<script>
-  // Если сайт открыт НЕ на боевом адресе прод-репозитория — подгружаем блокировку
-  if (window.location.hostname !== "synth-wave-defense.github.io") {
-    const s = document.createElement("script");
-    s.src = "dev_gate.js";
-    document.head.appendChild(s);
-  }
-</script>
-
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <script>
+    // Блокируем, если в адресе есть папка dev ИЛИ если запущен локально (localhost)
+    const isDev = window.location.pathname.includes("dev-synth-wave-defense") || 
+                  window.location.hostname === "localhost" || 
+                  window.location.hostname === "127.0.0.1";
+
+    if (isDev) {
+      const s = document.createElement("script");
+      s.src = "dev_gate.js";
+      document.head.appendChild(s);
+    }
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Synth Wave Defense</title>
   <link rel="stylesheet" href="fonts.css">
