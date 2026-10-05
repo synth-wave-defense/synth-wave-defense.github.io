@@ -23,6 +23,16 @@
 <!--   was failing for the wrong reason. It now empties the lists explicitly via -->
 <!--   _tracks(). This was a broken TEST, not broken code. -->
 <!DOCTYPE html>
+
+<script>
+  // Если сайт открыт НЕ на боевом адресе прод-репозитория — подгружаем блокировку
+  if (window.location.hostname !== "synth-wave-defense.github.io") {
+    const s = document.createElement("script");
+    s.src = "dev_gate.js";
+    document.head.appendChild(s);
+  }
+</script>
+
 <html lang="en">
 <head>
   <meta charset="UTF-8">
