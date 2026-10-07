@@ -11,6 +11,6 @@
       "target": {
         "namespace": "android_app",
         "package_name": "synth_wave_defense_dev.twa",
-        "sha256_cert_fingerprints": ["A5:A9:BB:85:0D:06:FF:1F:AE:88:30:C9:84:C4:67:87:54:B9:D1:53:63:07:48:BE:61:2E:5F:11:A8:E1:F8:B4"]
+        "sha256_cert_fingerprints": ["9D:1F:CF:77:DF:AE:22:CD:CB:8E:C7:6D:95:D3:EA:8B:BC:05:AF:96:70:CE:14:5D:E2:A9:AA:1A:0A:53:35:DF"]
       }
     }]
