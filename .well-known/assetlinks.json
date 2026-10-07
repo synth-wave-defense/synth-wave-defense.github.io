@@ -10,7 +10,7 @@
       "relation": ["delegate_permission/common.handle_all_urls"],
       "target": {
         "namespace": "android_app",
-        "package_name": "synth_wave_defense_dev.twa",
+        "package_name": "io.github.synth_wave_defense.twa",
         "sha256_cert_fingerprints": ["9D:1F:CF:77:DF:AE:22:CD:CB:8E:C7:6D:95:D3:EA:8B:BC:05:AF:96:70:CE:14:5D:E2:A9:AA:1A:0A:53:35:DF"]
       }
     }]
