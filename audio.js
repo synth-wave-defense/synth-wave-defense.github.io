@@ -1,14 +1,15 @@
 // Synth Wave Defense -- audio.js  v2.4
-// DSP-движок: разделение laserHit/melterHit, динамический throttle и custom-синтез.
+// [AUD100] SFX Engine Module: Handles sound effect playback, custom synthesis, and dynamic throttling.
 
 const SFX = (function () {
   'use strict';
 
-  const MASTER_VOLUME = 0.55;
+  // [AUD101] Core Audio Constants
+  const MASTER_VOLUME = 0.45;
   const MAX_VOICES = 32;
   const BEAM_KEEPALIVE = 0.14;
 
-  // Базовые минимальные интервалы между одинаковыми звуками (в секундах)
+  // [AUD101.01] Default Sound Throttling Configuration (minimum interval between duplicate sounds in seconds)
   const THROTTLE = {
     gun: 0.055, mortarFire: 0.09, explosion: 0.07, tesla: 0.09,
     railgun: 0.11, stasis: 0.12, steam: 0.10, enemyDeath: 0.045,
@@ -16,6 +17,7 @@ const SFX = (function () {
     laserHit: 0.035, melterHit: 0.045, beamHit: 0.045
   };
 
+  // [AUD101.02] Voice Allocation Priorities
   const LOW_PRIORITY = {
     gun: true, tesla: true, railgun: true, stasis: true,
     enemyDeath: true, explosion: true, steam: true, mortarFire: true,
@@ -51,33 +53,35 @@ const SFX = (function () {
     return curve;
   }
 
-function ensureCtx() {
+  // [AUD102] AudioContext Initialization & DSP Graph Pipeline
+  function ensureCtx() {
     if (ctx) return ctx;
     try {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return null;
       ctx = new AC();
 
-      // 1. Создание и настройка компрессора/лимитера
+      // [AUD102.01] Dynamics Compressor Setup
       comp = ctx.createDynamicsCompressor();
-      comp.threshold.setValueAtTime(-14, ctx.currentTime);
-      comp.knee.setValueAtTime(12, ctx.currentTime);
+      comp.threshold.setValueAtTime(-18, ctx.currentTime);
+      comp.knee.setValueAtTime(8, ctx.currentTime);
       comp.ratio.setValueAtTime(20, ctx.currentTime);
       comp.attack.setValueAtTime(0.001, ctx.currentTime);
-      comp.release.setValueAtTime(0.12, ctx.currentTime);
+      comp.release.setValueAtTime(0.10, ctx.currentTime);
 
-      // 2. Шины громкости
+      // [AUD102.02] Audio Gain Buses Configuration
       master = ctx.createGain();
       master.gain.value = MASTER_VOLUME * volume;
 
       sfxBus = ctx.createGain();
       sfxBus.gain.value = 1;
 
-      // 3. Маршрутизация: sfxBus -> comp -> master -> destination
+      // [AUD102.03] Master Signal Routing: sfxBus -> comp -> master -> destination
       sfxBus.connect(comp);
       comp.connect(master);
       master.connect(ctx.destination);
 
+      // [AUD102.04] Audio Noise Buffer Generation
       const len = Math.floor(ctx.sampleRate * 2);
       
       whiteNoiseBuffer = ctx.createBuffer(1, len, ctx.sampleRate);
@@ -108,6 +112,7 @@ function ensureCtx() {
     try { if (ctx.state === 'suspended') ctx.resume(); } catch (e) { }
   }
 
+  // [AUD103] Sample Asset Loader & Registry
   const samples = Object.create(null);
   const customSynths = Object.create(null);
   let sampleBase = 'sfx/';
@@ -218,6 +223,7 @@ function ensureCtx() {
     setTimeout(release, (dur + 0.3) * 1000);
   }
 
+  // [AUD104] Procedural Tone Synthesizer
   function tone(o) {
     if (!ensureCtx()) return;
     const t0 = (o.at || 0) + now();
@@ -269,6 +275,7 @@ function ensureCtx() {
     return osc;
   }
 
+  // [AUD105] Procedural Noise Synthesizer
   function noise(o) {
     if (!ensureCtx()) return;
     const t0 = (o.at || 0) + now();
@@ -330,6 +337,7 @@ function ensureCtx() {
     noise({ dur: 0.012, gain: 0.06, attack: 0.001, filter: 'bandpass', cutoff: 3400, q: 1.1 });
   }
 
+  // [AUD106] Sound Alias & Default FX Mappings
   const SOUND_ALIAS = {
     tap: ['ui', 0], back: ['ui', -1], toggle: ['ui', 1], confirm: ['ui', 2],
     denied: ['ui', -2], build: ['ui', 1], upgrade: ['ui', 2], sell: ['ui', -1],
@@ -361,6 +369,7 @@ function ensureCtx() {
     else noise(layer);
   }
 
+  // [AUD107] Audio Dispatcher & Playback Control
   function play(name, arg) {
     if (!enabled) return;
     if (!ensureCtx()) return;
@@ -373,7 +382,7 @@ function ensureCtx() {
     if (!fn && !sampled && !hasCustom) return;
 
     const t = now();
-    // Проверяем кастомный троттлинг из манифеста, затем дефолтный
+    // Check custom manifest throttle, fallback to default throttle
     const gap = customThrottles[name] !== undefined ? customThrottles[name] : THROTTLE[name];
     if (gap) {
       const last = lastPlayed[name] || -999;
@@ -419,6 +428,7 @@ function ensureCtx() {
     '.level-btn, .setting-row, .badge-half, .switch, .loadout-widget-header,' +
     '.build-slot, .upgrade-node, [data-sfx], [onclick]';
 
+  // [AUD108] User Interface Event Listeners & Audio Unlocking
   function installUiHooks() {
     document.addEventListener('pointerdown', (ev) => {
       if (!unlocked) { unlocked = true; ensureCtx(); resume(); }
@@ -448,6 +458,7 @@ function ensureCtx() {
     unlock() { ensureCtx(); resume(); },
     loadSamples, registerBuffer, clearSample, hasSample, sampleNames,
 
+    // [AUD109] Manifest Auto-Loader & Custom Synth Configuration
     autoload() {
       try {
         if (typeof window.SFX_MANIFEST !== 'undefined' && window.SFX_MANIFEST) {
@@ -455,7 +466,7 @@ function ensureCtx() {
           Object.keys(window.SFX_MANIFEST).forEach(k => {
             const entry = window.SFX_MANIFEST[k];
             
-            // Если передан объект с полем throttle и вложенным config
+            // Check if entry contains custom throttle and synth config
             let synthConfig = entry;
             if (entry && typeof entry === 'object' && entry.config) {
               if (typeof entry.throttle === 'number') {
