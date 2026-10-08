@@ -1,0 +1,17 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.github.synth_wave_defense.twa",
+        "sha256_cert_fingerprints": ["03:E9:BA:4A:BF:79:7B:60:A3:EA:5A:0A:2C:77:FD:3E:79:2C:CD:DD:2F:9B:EF:64:48:DC:03:17:13:AD:1D:AF"]
+      }
+    },
+{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.github.synth_wave_defense.twa",
+        "sha256_cert_fingerprints": ["9D:1F:CF:77:DF:AE:22:CD:CB:8E:C7:6D:95:D3:EA:8B:BC:05:AF:96:70:CE:14:5D:E2:A9:AA:1A:0A:53:35:DF"]
+      }
+    }
+]
