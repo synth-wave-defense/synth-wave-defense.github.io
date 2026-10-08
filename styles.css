@@ -1,4 +1,4 @@
-/* [XYZ100] Base layout and canvas viewport setup */
+/* [CSS100] Base layout and canvas viewport setup */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -56,7 +56,7 @@ body {
   overscroll-behavior: none;
 }
 
-/* [XYZ101] Top HUD status bar container */
+/* [CSS101] Top HUD status bar container */
 .hud-top-bar {
   position: fixed;
   top: max(16px, env(safe-area-inset-top));
@@ -94,7 +94,7 @@ body {
   height: 100%;
 }
 
-/* [XYZ101.01] HUD interactive badges and stat indicators */
+/* [CSS101.01] HUD interactive badges and stat indicators */
 .hud-split-badge {
   display: inline-flex;
   align-items: center;
@@ -189,7 +189,7 @@ body {
 }
 .hud-chapter-label.hidden { display: none; }
 
-/* [XYZ101.02] HUD gear settings button and interactive animations */
+/* [CSS101.02] HUD gear settings button and interactive animations */
 .hud-gear-btn {
   width: 36px;
   height: 36px;
@@ -239,9 +239,9 @@ body {
   filter: drop-shadow(0 0 9px #00e5ff);
 }
 
-/* [XYZ102] Wave notification alerts and banners */
+/* [CSS102] Wave notification alerts and banners */
 
-/* [XYZ102.01] Boss and mini-boss incoming notification banner */
+/* [CSS102.01] Boss and mini-boss incoming notification banner */
 .incoming-alert-banner {
   position: fixed;
   top: max(82px, calc(env(safe-area-inset-top) + 68px));
@@ -303,7 +303,7 @@ body {
   100% { opacity: 1; transform: translateX(-50%) scale(1.04); filter: drop-shadow(0 0 12px #f05f9f); }
 }
 
-/* [XYZ102.02] New tower unlocked notification banner */
+/* [CSS102.02] New tower unlocked notification banner */
 .new-tower-banner {
   position: fixed;
   top: max(82px, calc(env(safe-area-inset-top) + 68px));
@@ -377,7 +377,7 @@ body {
   line-height: 1.25;
 }
 
-/* [XYZ103] Bottom controls panel and build toolbar */
+/* [CSS103] Bottom controls panel and build toolbar */
 .controls-wrapper {
   position: relative;
   height: 96px;
@@ -408,7 +408,7 @@ body {
 }
 .hidden { display: none !important; }
 
-/* [XYZ103.01] Drag-and-drop cancel zone overlay */
+/* [CSS103.01] Drag-and-drop cancel zone overlay */
 .cancel-zone-overlay {
   position: absolute;
   top: 0;
@@ -440,7 +440,7 @@ body {
   text-shadow: 0 0 10px rgba(242, 142, 174, 0.5);
 }
 
-/* [XYZ103.02] Tower selection build buttons and state modifiers */
+/* [CSS103.02] Tower selection build buttons and state modifiers */
 .tower-btn {
   flex: 1;
   min-width: 0;
@@ -610,7 +610,7 @@ body {
   flex-shrink: 0;
 }
 
-/* [XYZ103.03] Wave start action button and progress ring */
+/* [CSS103.03] Wave start action button and progress ring */
 .action-btn {
   flex: none;
   width: 78px;
@@ -751,7 +751,7 @@ body {
   pointer-events: auto;
 }
 
-/* [XYZ104] HUD time modulation speed capsule widget */
+/* [CSS104] HUD time modulation speed capsule widget */
 .hud-speed-capsule {
   position: fixed;
   right: max(max(16px, env(safe-area-inset-right)), calc(50vw - 480px + 16px));
@@ -844,7 +844,7 @@ body {
   letter-spacing: -0.5px;
 }
 
-/* [XYZ105] Post-match result screens (victory and defeat) */
+/* [CSS105] Post-match result screens (victory and defeat) */
 .result-screen {
   background: transparent !important;
   backdrop-filter: none !important;
@@ -885,7 +885,7 @@ body {
   gap: 2px;
 }
 
-/* [XYZ105.01] Victory fanfare animation background */
+/* [CSS105.01] Victory fanfare animation background */
 .victory-fanfare-rays {
   position: absolute;
   top: 40px;
@@ -997,7 +997,7 @@ body {
   margin-left: 1px;
 }
 
-/* [XYZ105.02] Star rating slot animations */
+/* [CSS105.02] Star rating slot animations */
 .result-stars-row {
   display: flex;
   align-items: center;
@@ -1130,7 +1130,7 @@ body {
   100% { opacity: 1; transform: scale(1) rotate(0deg); }
 }
 
-/* [XYZ105.03] Defeat glitch title effect and sweep overlay */
+/* [CSS105.03] Defeat glitch title effect and sweep overlay */
 @keyframes failShake {
   0% { opacity: 0; transform: translateX(0) scale(1.06); }
   20% { opacity: 1; transform: translateX(-9px); }
@@ -1210,7 +1210,7 @@ body {
   .star-slot::before, .star-slot::after { display: none !important; }
 }
 
-/* [XYZ106] Full-screen overlay screens and modal dialogs */
+/* [CSS106] Full-screen overlay screens and modal dialogs */
 .overlay-screen {
   position: absolute;
   top: 0;
@@ -1302,7 +1302,7 @@ body {
   color: #ffffff;
 }
 
-/* [XYZ106.01] Start screen title layout and main action capsule buttons */
+/* [CSS106.01] Start screen title layout and main action capsule buttons */
 .start-screen-container {
   position: absolute;
   inset: 0;
@@ -1461,7 +1461,7 @@ body {
   transform: none !important;
 }
 
-/* [XYZ106.02] Level selection screen grid and chapter navigation */
+/* [CSS106.02] Level selection screen grid and chapter navigation */
 .levels-bg {
   background: rgba(4, 6, 14, 0.65) !important;
   backdrop-filter: blur(8px) !important;
@@ -1668,7 +1668,7 @@ body {
   flex: none;
 }
 
-/* [XYZ106.03] Global tech tree upgrade cards and branch lists */
+/* [CSS106.03] Global tech tree upgrade cards and branch lists */
 .screen-bg-only > * { display: none !important; }
 
 .upgrades-bg {
@@ -1864,7 +1864,7 @@ body {
   margin-top: 4px;
 }
 
-/* [XYZ106.04] In-game settings modal and volume sliders */
+/* [CSS106.04] In-game settings modal and volume sliders */
 .settings-box {
   display: flex;
   flex-direction: column;
@@ -2028,7 +2028,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   letter-spacing: 1px;
 }
 
-/* [XYZ106.05] Shop modal cards and reward buttons */
+/* [CSS106.05] Shop modal cards and reward buttons */
 #shopScreen {
   z-index: 200 !important;
   pointer-events: auto !important;
@@ -2182,7 +2182,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   box-shadow: none;
 }
 
-/* [XYZ107] In-game tower inspection and management panel */
+/* [CSS107] In-game tower inspection and management panel */
 #inspectPanel {
   display: flex;
   align-items: center;
@@ -2270,7 +2270,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   box-shadow: 0 0 5px rgba(0, 229, 255, 0.6);
 }
 
-/* [XYZ107.01] Tower upgrade and sell confirm action buttons */
+/* [CSS107.01] Tower upgrade and sell confirm action buttons */
 .btn-upgrade {
   flex: 1.3;
   min-width: 0;
@@ -2426,7 +2426,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   filter: drop-shadow(0 0 6px #f05f9f);
 }
 
-/* [XYZ108] Interactive tutorial overlay spotlight and target indicators */
+/* [CSS108] Interactive tutorial overlay spotlight and target indicators */
 .tutorial-layer {
   position: fixed;
   inset: 0;
@@ -2543,7 +2543,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   color: #00e5ff;
 }
 
-/* [XYZ109] Developer control bar and spawner panel */
+/* [CSS109] Developer control bar and spawner panel */
 .dev-bar {
   position: fixed;
   top: max(10px, env(safe-area-inset-top));
@@ -2758,7 +2758,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   transform: scale(0.96);
 }
 
-/* [XYZ110] Collapsible accordion loadout and settings widgets */
+/* [CSS110] Collapsible accordion loadout and settings widgets */
 #settingsScreen .settings-box {
   margin: 6px auto;
   width: 100%;
