@@ -40,13 +40,24 @@ let activeBossAlertType = null;
 let bossAlertHideTimer = 0;
 let newTowerBannerHideTimer = 0;
 
+let cameraShakeTimer = 0;
+let cameraShakeIntensity = 0;
+
+function triggerCameraShake(dur = 0.5, intensity = 15) {
+  cameraShakeTimer = dur;
+  cameraShakeIntensity = intensity;
+}
+
 function hasClearedLevelBefore(lvl) {
   return maxUnlockedLevel > lvl;
 }
 
 function getBaseDamageFor(e) {
   if (e.isBoss) return 5;
-  if (e.isMiniBoss) return 2;
+  if (e.isMiniBoss) {
+    if (typeof currentLevel !== 'undefined' && currentLevel === 34) return 1;
+    return 2;
+  }
   return 1;
 }
 
@@ -208,6 +219,7 @@ let hasClaimedX2ThisLevel = false;
 let noAdsPurchased = false;
 let dailyGiftsClaimedDate = '';
 let dailyGiftsClaimedCount = 0; // 0, 1, 2 или 3 в день
+let timeModTier = 0; // 0 = locked, 1 = Tier 1 (0.8x, 1.0x, 1.5x), 2 = Tier 2 (0.5x, 0.8x, 1.0x, 1.5x, 2.0x)
 let shopPreviousSource = 'start'; // откуда пришли в магазин: 'start', 'victory', 'defeat'
 
 let reviveUsedThisMatch = false;
@@ -244,7 +256,8 @@ function serializeSaveData() {
     tutorialSeen,
     noAdsPurchased,
     dailyGiftsClaimedDate,
-    dailyGiftsClaimedCount
+    dailyGiftsClaimedCount,
+    timeModTier
   };
 }
 
@@ -283,6 +296,7 @@ function loadGame() {
   if (typeof data.noAdsPurchased === 'boolean') noAdsPurchased = data.noAdsPurchased;
   if (typeof data.dailyGiftsClaimedDate === 'string') dailyGiftsClaimedDate = data.dailyGiftsClaimedDate;
   if (typeof data.dailyGiftsClaimedCount === 'number') dailyGiftsClaimedCount = data.dailyGiftsClaimedCount;
+  if (typeof data.timeModTier === 'number') timeModTier = data.timeModTier;
 
   if (typeof data.diamonds === 'number' && data.diamonds >= 0) diamonds = data.diamonds;
   if (typeof data.maxUnlockedLevel === 'number' && data.maxUnlockedLevel >= 1) {
@@ -751,12 +765,12 @@ function togglePause() {
 }
 
 function forcePauseForBackground() {
-  sfxStopBeams();
-  musicSuspend();
   if (devInputOpen || Date.now() < suppressBackgroundPauseUntil) {
     saveGame();
     return;
   }
+  sfxStopBeams();
+  musicSuspend();
   if (gameState === 'PLAYING') {
     gameState = 'PAUSED';
     if (typeof showSettings === 'function') {
@@ -1131,21 +1145,94 @@ function acceptEmergencyRevive() {
 
   const executeRevive = () => {
     musicSetDucked(false);
-    baseHp = Math.max(3, Math.round(baseHp + 3));
+    baseHp = Math.max(3, Math.round(matchStartBaseHp * 0.5));
     reviveUsedThisMatch = true;
     updateUI();
 
-    if (WAYPOINTS && WAYPOINTS.length > 0) {
+    if (WAYPOINTS && WAYPOINTS.length > 1) {
       const basePt = WAYPOINTS[WAYPOINTS.length - 1];
-      createShockwave(basePt.x, basePt.y, 160, '#00e5ff');
-      createExplosion(basePt.x, basePt.y, 80);
-      for (let i = enemies.length - 1; i >= 0; i--) {
-        const e = enemies[i];
-        if (Math.hypot(e.x - basePt.x, e.y - basePt.y) <= 160) {
-          createDamageShards(e.x, e.y, e.color, 25, false);
-          enemies.splice(i, 1);
-        }
+      const fw = typeof FIELD_WIDTH !== 'undefined' ? FIELD_WIDTH : 700;
+      createShockwave(basePt.x, basePt.y, fw * 0.9, '#00e5ff');
+      createShockwave(basePt.x, basePt.y, fw * 0.6, '#ffffff');
+      createShockwave(basePt.x, basePt.y, fw * 0.3, '#38bdf8');
+      if (typeof createExplosion === 'function') createExplosion(basePt.x, basePt.y, 100);
+      if (typeof createDamageShards === 'function') createDamageShards(basePt.x, basePt.y, '#00e5ff', 50, false);
+      triggerCameraShake(0.5, 16);
+      vibrate('heavy');
+      sfx('bossIncoming');
+      sfx('revive');
+
+      const numWps = WAYPOINTS.length;
+      const cumDist = [0];
+      for (let k = 1; k < numWps; k++) {
+        const d = Math.hypot(WAYPOINTS[k].x - WAYPOINTS[k - 1].x, WAYPOINTS[k].y - WAYPOINTS[k - 1].y);
+        cumDist.push(cumDist[k - 1] + d);
       }
+      const totalRouteDistance = cumDist[numWps - 1];
+      const pushDistance = totalRouteDistance * 0.45;
+
+      enemies.forEach(e => {
+        let k = e.wpIndex;
+        if (k < 1) k = 1;
+        if (k >= numWps) k = numWps - 1;
+
+        const prevWp = WAYPOINTS[k - 1];
+        const targetWp = WAYPOINTS[k];
+        const segDx = targetWp.x - prevWp.x;
+        const segDy = targetWp.y - prevWp.y;
+        const segLen = Math.hypot(segDx, segDy);
+
+        let dInSeg = 0;
+        if (segLen > 0) {
+          const ex = e.x - prevWp.x;
+          const ey = e.y - prevWp.y;
+          const proj = (ex * segDx + ey * segDy) / segLen;
+          dInSeg = Math.max(0, Math.min(segLen, proj));
+        }
+
+        const currentDistFromSpawn = cumDist[k - 1] + dInSeg;
+        const newDistFromSpawn = Math.max(0, currentDistFromSpawn - pushDistance);
+
+        let newK = 1;
+        while (newK < numWps - 1 && cumDist[newK] < newDistFromSpawn) {
+          newK++;
+        }
+
+        const pSegStart = WAYPOINTS[newK - 1];
+        const pSegEnd = WAYPOINTS[newK];
+        const pSegLen = cumDist[newK] - cumDist[newK - 1];
+        const pSegDist = newDistFromSpawn - cumDist[newK - 1];
+
+        let t = 0;
+        if (pSegLen > 0) {
+          t = Math.max(0, Math.min(1, pSegDist / pSegLen));
+        }
+
+        let newX = pSegStart.x + t * (pSegEnd.x - pSegStart.x);
+        let newY = pSegStart.y + t * (pSegEnd.y - pSegStart.y);
+
+        if (e.laneOffset) {
+          const sDx = pSegEnd.x - pSegStart.x;
+          const sDy = pSegEnd.y - pSegStart.y;
+          const sLen = Math.hypot(sDx, sDy) || 1;
+          let offX = -sDy / sLen;
+          let offY = sDx / sLen;
+          const nextWp = WAYPOINTS[newK + 1];
+          if (nextWp) {
+            const s2Dx = nextWp.x - pSegEnd.x;
+            const s2Dy = nextWp.y - pSegEnd.y;
+            const s2Len = Math.hypot(s2Dx, s2Dy) || 1;
+            offX += -s2Dy / s2Len;
+            offY += s2Dx / s2Len;
+          }
+          newX += offX * e.laneOffset;
+          newY += offY * e.laneOffset;
+        }
+
+        e.x = newX;
+        e.y = newY;
+        e.wpIndex = newK;
+      });
     }
     gameState = 'PLAYING';
     lastTime = performance.now();
@@ -1694,6 +1781,7 @@ function handleClearSaveClick() {
   noAdsPurchased = false;
   dailyGiftsClaimedDate = '';
   dailyGiftsClaimedCount = 0;
+  timeModTier = 0;
 
   showStartScreen();
   renderLevelsGrid();
@@ -1846,7 +1934,43 @@ function claimDailyGiftsPack() {
 // Заглушка покупок (симуляция Google Play Billing)
 function buyShopIAP(productId) {
   sfx('confirm');
-  if (productId === 'no_ads') {
+  if (productId === 'time_mod_t1') {
+    if (timeModTier >= 1) {
+      showHintToast('Already unlocked!');
+      return;
+    }
+    if (diamonds < 40) {
+      showHintToast('Not enough Diamonds! (40 required)');
+      return;
+    }
+    diamonds -= 40;
+    timeModTier = 1;
+    updateDiamondUI();
+    saveGame();
+    sfx('reward');
+    renderShopScreen();
+    showHintToast('Time Control Tier 1 unlocked!');
+  } else if (productId === 'time_mod_t2') {
+    if (timeModTier >= 2) {
+      showHintToast('Already maxed!');
+      return;
+    }
+    if (timeModTier < 1) {
+      showHintToast('Unlock Tier 1 first!');
+      return;
+    }
+    if (diamonds < 50) {
+      showHintToast('Not enough Diamonds! (50 required)');
+      return;
+    }
+    diamonds -= 50;
+    timeModTier = 2;
+    updateDiamondUI();
+    saveGame();
+    sfx('reward');
+    renderShopScreen();
+    showHintToast('Time Control Tier 2 unlocked!');
+  } else if (productId === 'no_ads') {
     if (noAdsPurchased) {
       showHintToast('Already purchased!');
       return;
@@ -1992,6 +2116,10 @@ function showLevelSelectFromGame() {
 }
 
 function update(dt) {
+  if (cameraShakeTimer > 0) {
+    cameraShakeTimer -= dt;
+    if (cameraShakeTimer < 0) cameraShakeTimer = 0;
+  }
   const lvlConfig = LEVELS_DATA[currentLevel];
   const maxW = lvlConfig ? lvlConfig.totalWaves : 10;
   const btn = el('waveBtn');
@@ -2130,8 +2258,13 @@ if (e.type === 'chronos_warp') {
         if (progress <= 0.24) {
           e.x = e.dashAnim.startX;
           e.y = e.dashAnim.startY;
-          e.dashMorph = progress / 0.24;
           e.dashLineMoving = false;
+
+          // Before jump: materializes particles around himself
+          if (Math.random() < 0.8) {
+            if (typeof createDamageShards === 'function') createDamageShards(e.x, e.y, '#f97316', 15, false);
+            if (typeof createSparks === 'function') createSparks(e.x, e.y, '#fb923c', 3, '#f97316');
+          }
         } else if (progress <= 0.76) {
           const moveT = (progress - 0.24) / (0.76 - 0.24);
           e.x = e.dashAnim.startX + (e.dashAnim.endX - e.dashAnim.startX) * moveT;
@@ -2141,17 +2274,17 @@ if (e.type === 'chronos_warp') {
           if (dx !== 0 || dy !== 0) {
             e.angle = Math.atan2(dy, dx);
           }
-          e.dashMorph = 1.0;
           e.dashLineMoving = true;
 
-          if (Math.random() < 0.6) {
-            if (typeof createSparks === 'function') createSparks(e.x, e.y, '#fb923c', 2, '#f97316');
+          // During jump: throws particles around as he moves forward
+          if (Math.random() < 0.7) {
+            if (typeof createDamageShards === 'function') createDamageShards(e.x, e.y, '#f97316', 20, false);
+            if (typeof createSparks === 'function') createSparks(e.x, e.y, '#fb923c', 4, '#f97316');
           }
         } else {
           e.x = e.dashAnim.endX;
           e.y = e.dashAnim.endY;
           e.wpIndex = e.dashAnim.endWp;
-          e.dashMorph = (1.0 - progress) / (1.0 - 0.76);
           e.dashLineMoving = false;
         }
 
@@ -2160,12 +2293,12 @@ if (e.type === 'chronos_warp') {
           e.y = e.dashAnim.endY;
           e.wpIndex = e.dashAnim.endWp;
           e.dashAnim = null;
-          e.dashMorph = 0;
           e.dashLineMoving = false;
           e.teleportFlashTimer = 0.25;
 
           if (typeof createShockwave === 'function') createShockwave(e.x, e.y, 65, '#fb923c');
-          if (typeof createDamageShards === 'function') createDamageShards(e.x, e.y, '#fb923c', 20, false);
+          if (typeof createDamageShards === 'function') createDamageShards(e.x, e.y, '#f97316', 40, false);
+          if (typeof createSparks === 'function') createSparks(e.x, e.y, '#fb923c', 10, '#f97316');
         }
 
         continue;
@@ -2244,12 +2377,13 @@ if (e.type === 'chronos_warp') {
       e.empTimer = (e.empTimer || 0) + dt;
       if (e.empTimer >= 5.0) {
         e.empTimer -= 5.0;
-        createShockwave(e.x, e.y, 180, '#fb923c');
+        sfx('stasis');
+        createShockwave(e.x, e.y, 180, '#f05f9f');
         towers.forEach(t => {
           if (Math.hypot(t.x - e.x, t.y - e.y) <= 180) {
             t.disabledTimer = Math.max(t.disabledTimer || 0, 2.5);
             sfx('steam');
-            createDamageShards(t.x, t.y, '#fb923c', 16, false);
+            createDamageShards(t.x, t.y, '#f05f9f', 16, false);
           }
         });
       }
@@ -2303,7 +2437,7 @@ if (e.type === 'chronos_warp') {
         updateUI();
         if (baseHp <= 0) {
           baseHp = 0;
-          if (wave >= Math.ceil(maxW * 0.8) && !reviveUsedThisMatch) {
+          if (!reviveUsedThisMatch) {
             triggerEmergencyRevivePrompt();
             return;
           }
@@ -2653,12 +2787,13 @@ if (e.type === 'chronos_warp') {
       sfxDeath(e);
 
       if (e.type === 'emp_bomber') {
-        createShockwave(e.x, e.y, 110, '#fb923c');
+        sfx('stasis');
+        createShockwave(e.x, e.y, 110, '#f05f9f');
         towers.forEach(t => {
           if (Math.hypot(t.x - e.x, t.y - e.y) <= 110) {
             t.disabledTimer = Math.max(t.disabledTimer || 0, 3.0);
             sfx('steam');
-            createDamageShards(t.x, t.y, '#fb923c', 16, false);
+            createDamageShards(t.x, t.y, '#f05f9f', 16, false);
           }
         });
       }

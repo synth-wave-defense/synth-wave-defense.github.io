@@ -1,105 +1,10 @@
-// data.js v1.8 — requirements.md pass (in-match physics, meta gating, early-call):
-// - Block 4a: Removed splashResist (swarm) and flatArmor (goliath/titan_core/
-//   emp_overlord) entirely from ENEMY_CONFIGS and the two hard-coded boss spawn
-//   objects (L40 titan_core, L50 emp_overlord). Tower effectiveness against a
-//   given mob now comes purely from geometry/speed/delivery-method interactions
-//   (implemented in index.html: Lock-on Delay, Locked Target for Laser/Melter,
-//   Melter's heat-reset-on-switch), not flat damage-reduction stats.
-// - Block 4b: Swarm's declared spawn `interval` bumped from ~0.28-0.35 to the
-//   spec value of 0.15s for documentation accuracy -- NOTE: index.html's swarm
-//   expansion already hard-codes individual-unit spacing to 0.045s regardless of
-//   this field (see spawnInterval in processSpawnGroup), so this was already
-//   denser than spec at runtime; this change only makes the source data honest
-//   about intent, it does not change live behavior. Tank intervals below the
-//   spec's 1.2-1.4s band (1.147, 1.08) bumped to 1.2; one Goliath interval above
-//   the 1.4-1.6s band (1.615) trimmed to 1.6.
-// - Block 6: Railgun retuned to hit the spec's damage table exactly: damage
-//   85->120, damageMultiplier 1.4->1.5, powerDmg 0.08->0.10, fireRate 1.8->2.2s.
-//   Verified against spec: 0-meta Lv1/Lv3 = 120/270, 10-meta Lv1/Lv3 = 240/540 --
-//   all four match exactly with this combination. Gatling/Tesla/Mortar/Laser
-//   were already exact matches for their damage tables, no changes needed there.
-// - Melter reworked for the exponential-ramp mechanic (see index.html): baseDps
-//   38->10 to match the spec table's pre-ramp Lv1 baseline; powerRate 0.04->0.05
-//   so the ramp-to-peak time at max meta upgrade lands at 4.0/1.5=~2.67s, close
-//   to the spec's "~2.6s at max upgrade" callout. NOTE: the spec table's peak-DPS
-//   entries (10->588 at 0 meta, 18->1058 at 10 meta) imply a ~58x jump from Lv1
-//   to Lv3 that isn't reachable through the shared per-level damageMultiplier
-//   system every other tower uses (that system tops out around 2x for 2 levels)
-//   without making Melter absurdly front-loaded relative to its build cost --
-//   implemented the x40-at-4s ramp curve faithfully (Math.pow(40, t/4)) on top of
-//   the standard damageMultiplier scaling instead, which lands Melter's peak DPS
-//   in the same order of magnitude as the table (roughly 400-730 depending on
-//   level/meta) rather than hitting the exact figures. Flagging this the way the
-//   rest of this changelog does: worth a dedicated playtest + follow-up pass if
-//   the exact peak numbers matter.
-// - Added UPGRADE_STEPS_PER_SECTOR (=2) for the sector-gated meta upgrade cap
-//   (Block 3a): index.html now caps each branch's purchasable step at
-//   min(10, currentSector * UPGRADE_STEPS_PER_SECTOR).
-//
-// data.js v1.7 — balance pass: L7-L9 eased (feedback: L8 was borderline unplayable
-// unless spamming only level-1 towers; the peak was always wave 2, right when
-// cumulative gold is lowest -- this punishes players who like investing gold in
-// local tower upgrades rather than spreading thin across cheap towers). Bumped
-// startGold (145/150/175 -> 160/175/195) and trimmed baseHpScale (70/80/74 ->
-// 66/70/76, also fixing L9 previously being lower than L8 despite coming later).
-// New wave-2 peak ratio: L7 0.66, L8 0.63, L9 0.68 (was 0.76/0.81/0.72) -- still a
-// real step up in difficulty, just not a wall.
-//
-// data.js v1.6 — upgrade tree redesign (17 branches -> 9):
-// - Each of the 7 towers now has ONE combined "Power" branch (was 2: Damage+Rate)
-//   that scales damage, fire rate, AND range together per step, via new
-//   powerDmg/powerRate/powerRange fields on TOWER_CONFIGS. This also finally gives
-//   offensive towers a permanent range upgrade path (previously only Stasis had a
-//   range branch, and even that one was wired up but never actually consumed
-//   anywhere in index.html -- see v2.3.4 changelog there).
-// - Stasis's Power branch boosts range + slow strength (powerRange/powerSlow)
-//   instead of damage, since it deals none.
-// - Removed the "skills" tab entirely (skill_slow) -- wasn't part of the agreed
-//   upgrade list. Base tab keeps Base HP + Bounty (money from kills only; there
-//   was never an actual "starting gold" upgrade in the code, base_gold already
-//   only affected kill bounty and the wave-skip gold bonus).
-// - Total branches: 7 tower + base_hp + base_gold = 9, all still 10 steps at a
-//   flat 1 diamond/step (100 diamonds to max the whole tree, down from 170).
-//   Actual diamond income vs this cost still needs a full pass -- flagged, not
-//   done yet.
-//
-// data.js v1.5 — balance pass #2 (difficulty curve, L9-L29):
-// - L9/L10 eased: these sat at required/available-DPS ratio ~1.0-1.01 (the edge of
-//   failure) right before global upgrades unlock at L11 -- risk of hard-walling new
-//   players before they have any progression tool. Reduced baseHpScale/bossHp,
-//   small startGold bump. New peak ratio ~0.75-0.77, in line with L5-8.
-// - Sector 2 (L11-19) and Sector 3 (L21-29) generator loops previously called
-//   createEnemySpawn() without hpMult, so enemy HP never scaled with level within
-//   a sector -- only wave-to-wave count and a slow +3 gold/level trickle did
-//   anything, so difficulty quietly *fell* as gold outpaced flat HP. Added a
-//   sectorHpMult that grows with level in both loops so difficulty actually climbs
-//   through the sector (L11-19 ratio ~0.12-0.28 -> ~0.21-0.32; L21-29 ~0.06-0.09 ->
-//   ~0.26-0.34, tuned to sit above sector 2 so the curve stays roughly monotonic).
-// - Known follow-up, not yet applied: L20 and L30 (the boss levels bookending these
-//   two sectors) have the same no-hpMult gap on their non-boss spawns, so they now
-//   sit slightly below the regular levels right before them in relative toughness.
-//   Worth a matching pass once the above is playtested.
-//
-// data.js v1.4 — balance pass #1 (scope + tutorial fixes):
-// - Scope cut to 50 levels for v1 (TOTAL_LEVELS 60->50, TOTAL_SECTIONS 6->5).
-//   Removed the procedural levels 51-60 block (BOSS_CYCLE / LEVEL_MAP_SEQUENCE /
-//   generateStandardLevel loop) entirely — dead weight for the first release.
-// - startHp normalized to 10 on L1-L3 (was 5) so base HP is a flat 10 by default
-//   on every level, matching the rest of the game.
-// - Removed the tutorial miniboss spawns on L1 (wave 2) and L2 (wave 3): tutorial
-//   levels (1-2) should have no miniboss per design; L3 keeps its miniboss.
-//
-// data.js v1.3 — fix: restored missing createEnemySpawn() function (deleted during
-// map rework — caused a ReferenceError at load time, which silently halted the entire
-// script before showStartScreen() ever ran, so nothing rendered at all: no menu
-// background, no field, nothing. Also fixed LEVEL_MAP_SEQUENCE for levels 51-60,
-// which pointed at L41R-L50R reversed maps that no longer exist in this map set —
-// now reuses L41-L50 directly.
-// Debug: This file should load before the main game script
+// [XYZ200] Game configuration data: campaign constants, upgrade branch specifications, tower definitions, enemy parameters, map catalog, and level generator.
+
 if (typeof console !== 'undefined') {
   console.log('[data.js] Loading game data...');
 }
 
+// [XYZ201] Campaign Constants & Meta Upgrade Branches: Defines campaign structure and purchasable tech tree branches for towers and base.
 const TOTAL_LEVELS = 50;
 const LEVELS_PER_SECTION = 10;
 const TOTAL_SECTIONS = 5;
@@ -141,45 +46,13 @@ const TOWER_NAMES = {
   railgun: 'Railgun'
 };
 
-// === Tower visual language (Visual Direction "Turn 8") ============================
-// ONE geometry spec, rendered two ways: as an SVG string for every 2D UI surface
-// (build panel, loadout grid, mini-icons, inspector, upgrades list) via
-// buildTowerIconSvg() below, and onto the canvas for the battlefield via
-// drawTowerModel() in ui.js. Both read these same numbers, so the field model and
-// the menu icon can't drift apart -- that was the explicit ask: all 3 display
-// surfaces (field / build-panel icon / loadout mini-icon) must look like the same
-// tower.
-//
-// Shared chrome for every tower (drawn by the renderers, not listed per-tower):
-//   - ring r=17 (stroke 1.6) + inner ring r=11 (stroke 1, opacity .35), always
-//   - L2 adds a ring at r=22, L3 adds another at r=26 (same brightness as inner)
-//   - core dots show the level AND, at L3, the firing direction:
-//       L1 -> 1 dot centred; L2 -> 2 dots across the barrel axis;
-//       L3 -> 3 dots in a triangle pointing along the barrel
-//   - Stasis is the exception: no barrel, no dots. It gets snowflakes instead
-//     (1 / 2 / 3 by level, first one largest) because it's the one non-directional
-//     tower -- same reason it doesn't rotate on the field.
-//
-// Barrel ops are authored pointing along +x; the renderers rotate them to the
-// turret angle. Fill codes: 'c' = the tower's own colour, 'd' = dark (#0a0e1c).
+// [XYZ202] Tower Visual Geometry: Geometric rendering specs for tower turrets, barrels, and levels.
 const TOWER_GLYPH_DARK = '#0a0e1c';
 
 const TOWER_GLYPH_SPECS = {
   gun:     { barrel: [ { t: 'rect', x: 9, y: -5, w: 15, h: 2.6, r: 1.3, f: 'c' },
                        { t: 'rect', x: 9, y: 2.4, w: 15, h: 2.6, r: 1.3, f: 'c' } ] },
   laser:   { barrel: [ { t: 'poly', pts: [9, -5.5, 25, -1.6, 25, 1.6, 9, 5.5], f: 'c' } ] },
-  // Mortar fires in an arc, so its barrel is ELEVATED, not swivelled. Seen from
-  // directly above, an elevated barrel appears FORESHORTENED along the facing
-  // axis -- it gets shorter, not rotated. (The previous `tilt: -22` rotated it
-  // within the 2D plane, which just made it look like it was aiming off to one
-  // side.) `elevationDeg` drives three things that sell the raise from a top-down
-  // camera, applied by both renderers:
-  //   - barrel length scaled by cos(elevation): the higher it points, the more
-  //     of its length is pointing at the camera and the stubbier it looks
-  //   - an elliptical muzzle opening at the tip: we're looking into the bore at
-  //     an angle, so the circular opening projects as an ellipse
-  //   - a short shadow cast back along the barrel's base
-  // It's also the launch angle used for the shell's arc (see engine.js).
   mortar:  { elevationDeg: 55,
              barrel: [ { t: 'rect', x: 9, y: -6, w: 14, h: 12, r: 3, f: 'c' } ],
              muzzle: { atX: 23, rx: 3.0, ry: 5.2 } },
@@ -194,18 +67,12 @@ const TOWER_GLYPH_SPECS = {
                        { t: 'rect', x: 18, y: -6, w: 2.8, h: 12, r: 1, f: 'c', s: 'd', sw: 1 } ] }
 };
 
-// Level -> extra ring radii, core-dot layout, and Stasis snowflake layout.
 const TOWER_GLYPH_RINGS = { 1: [], 2: [22], 3: [22, 26] };
 const TOWER_GLYPH_CORES = {
   1: [{ cx: 0, cy: 0, r: 3.2 }],
   2: [{ cx: 0, cy: -4.2, r: 3 }, { cx: 0, cy: 4.2, r: 3 }],
   3: [{ cx: -3.4, cy: -4.2, r: 3 }, { cx: -3.4, cy: 4.2, r: 3 }, { cx: 4.2, cy: 0, r: 3 }]
 };
-// Stasis snowflakes stand in for the core dots. NOTE: the Turn 8 header text says
-// "first one large, the rest smaller", but the actual mockup draws L3 as three
-// EQUAL flakes in the same triangle the other towers use for their L3 dots. The
-// mockup wins -- it keeps Stasis consistent with the level language everywhere
-// else, and the descending-column version looked like a different mechanic.
 const TOWER_GLYPH_FLAKES = {
   1: [{ cx: 0, cy: 0, scale: 1.0, sw: 1.9 }],
   2: [{ cx: 0, cy: -4.5, scale: 0.95, sw: 2.0 }, { cx: 0, cy: 5, scale: 0.95, sw: 2.0 }],
@@ -213,9 +80,7 @@ const TOWER_GLYPH_FLAKES = {
       { cx: 5.5, cy: 0.5, scale: 0.85, sw: 2.24 }]
 };
 
-// Builds the SVG form of a tower glyph. Used for every non-canvas surface.
-// `angleDeg` lets a caller point the barrel somewhere other than "right"; the UI
-// always uses the default, the field uses the canvas renderer instead.
+// [XYZ202.01] Tower SVG Generator: Generates standalone SVG strings for tower icons across UI surfaces.
 function buildTowerIconSvg(type, level = 1, size = 28, angleDeg = 0) {
   const spec = TOWER_GLYPH_SPECS[type];
   const conf = TOWER_CONFIGS[type];
@@ -233,8 +98,6 @@ function buildTowerIconSvg(type, level = 1, size = 28, angleDeg = 0) {
 
   const rot = angleDeg ? ` transform="rotate(${angleDeg})"` : '';
   out += `<g${rot}>`;
-  // Barrel-only elevation foreshortening (Mortar). Core dots stay unscaled so
-  // they still read as a level indicator.
   const fore = spec.elevationDeg ? Math.cos(spec.elevationDeg * Math.PI / 180) : 1;
   if (spec.elevationDeg) out += `<g transform="scale(${fore.toFixed(3)},1)">`;
   spec.barrel.forEach(op => {
@@ -255,7 +118,6 @@ function buildTowerIconSvg(type, level = 1, size = 28, angleDeg = 0) {
     out += `</g>`;
     if (spec.muzzle) {
       const mx = spec.muzzle.atX * fore;
-      // Bright rim + dark bore: reads as looking into a raised tube.
       out += `<ellipse cx="${mx.toFixed(2)}" cy="0" rx="${spec.muzzle.rx}" ry="${spec.muzzle.ry}" fill="${TOWER_GLYPH_DARK}" stroke="${c}" stroke-width="1.6"/>`;
     }
   }
@@ -273,52 +135,42 @@ function buildTowerIconSvg(type, level = 1, size = 28, angleDeg = 0) {
   return out;
 }
 
+// [XYZ203] Tower Configurations: Base costs, range, attack metrics, upgrade multipliers, and milestone unlocked blurbs.
 const TOWER_CONFIGS = {
   gun: { cost: 50, range: 165, damage: 16, fireRate: 0.52, color: '#00e5ff', glow: '#00e5ff', type: 'projectile', costMultiplier: 1.3, damageMultiplier: 1.7, rateMultiplier: 0.8, rangeMultiplier: 1.1, powerDmg: 0.08, powerRate: 0.06, powerRange: 0.04 },
   laser: { cost: 70, range: 150, dps: 48, color: '#f05f9f', glow: '#f05f9f', type: 'beam', costMultiplier: 1.3, damageMultiplier: 1.85, rangeMultiplier: 1.1, powerDmg: 0.08, powerRate: 0.06, powerRange: 0.04 },
   mortar: { cost: 85, range: 195, damage: 32, splash: 80, fireRate: 1.5, color: '#ff9100', glow: '#ff9100', type: 'mortar', costMultiplier: 1.3, damageMultiplier: 1.6, rateMultiplier: 0.9, rangeMultiplier: 1.1, powerDmg: 0.08, powerRate: 0.06, powerRange: 0.04 },
   tesla: { cost: 75, range: 145, damage: 22, chainTargets: 3, jumpRadius: 90, fireRate: 0.85, color: '#00ffcc', glow: '#00ffcc', type: 'chain', costMultiplier: 1.3, damageMultiplier: 1.55, rateMultiplier: 0.85, rangeMultiplier: 1.1, powerDmg: 0.05, powerRate: 0.04, powerRange: 0.03 },
-  // Stasis: скромная база, умеренное замедление, растущий радиус
   stasis: { 
     cost: 65, 
-    range: 115,            // было 135
+    range: 115,
     damage: 0, 
-    fireRate: 1.6,         // было 1.1 (стреляет реже на старте)
-    slowFactor: 0.30,      // было 0.50 (30% на старте)
-    slowDuration: 1.4,     // было 1.8
+    fireRate: 1.6,
+    slowFactor: 0.30,
+    slowDuration: 1.4,
     color: '#38bdf8', glow: '#38bdf8', type: 'stasis', 
     costMultiplier: 1.3, 
     damageMultiplier: 1.0, 
-    rateMultiplier: 0.88,  // ускорение тика на 12% за уровень
-    rangeMultiplier: 1.15, // хороший прирост радиуса
+    rateMultiplier: 0.88,
+    rangeMultiplier: 1.15,
     powerRange: 0.05, powerSlow: 0.04, powerDuration: 0.06 
   },
-  // Melter: базовая фаза 4.0с огня / 4.0с остывания (50/50)
   melter: { 
     cost: 95, 
     range: 140, 
     baseDps: 10, 
     rampCap: 40, 
     rampTime: 4.0, 
-    cooldownTime: 4.0,     // время базового кулдауна
+    cooldownTime: 4.0,
     color: '#e85268', glow: '#e477a3', type: 'melter', 
     costMultiplier: 1.35, 
     damageMultiplier: 1.55, 
     rangeMultiplier: 1.1, 
     powerDmg: 0.05, powerRate: 0.05, powerRange: 0.03 
   },
-  
   railgun: { cost: 115, range: 220, damage: 120, fireRate: 2.2, color: '#a275df', glow: '#b57fdd', type: 'railgun', costMultiplier: 1.35, damageMultiplier: 1.5, rangeMultiplier: 1.1, powerDmg: 0.10, powerRate: 0.06, powerRange: 0.04 }
 };
 
-// Block 3a (requirements.md): meta upgrade branches unlock at most this many
-// steps per completed/current campaign sector -- e.g. in Sector 2 the max
-// purchasable step is 2 * UPGRADE_STEPS_PER_SECTOR = 4. Consumed in index.html's
-// getMaxUpgradeStep().
-// NOTE: must be declared AFTER TOWER_CONFIGS -- buildTowerIconSvg() reads each
-// tower's colour from it, and `const` has no hoisting (temporal dead zone).
-// Level-1 icons for the UI surfaces. Kept as a lookup so existing call sites
-// (TOWER_ICONS[type]) keep working unchanged.
 const TOWER_ICONS = {
   gun: buildTowerIconSvg('gun'),
   laser: buildTowerIconSvg('laser'),
@@ -329,8 +181,6 @@ const TOWER_ICONS = {
   railgun: buildTowerIconSvg('railgun')
 };
 
-// One-line pitch per tower, shown on the "New Tower" milestone screen. Kept here
-// with the rest of the tower content rather than in ui.js.
 const TOWER_UNLOCK_BLURBS = {
   gun: 'Reliable single-target fire. Cheap, accurate, good against steady lines of enemies.',
   laser: 'Locks onto one target and burns it down. Excellent against slow, heavily armoured units.',
@@ -341,18 +191,17 @@ const TOWER_UNLOCK_BLURBS = {
   railgun: 'Fires a piercing beam down a straight line, hitting every enemy it crosses. Slow, but devastating in long corridors.'
 };
 
-// Swarm walks in separated clumps instead of one continuous ribbon. The gap is
-// what makes Mortar a bad answer to Swarm: its 80px splash has to fit entirely
-// inside the empty path between clumps, so a shell aimed at the gap does nothing.
-// 3.2s at the slowest swarm speed (95 px/s) = ~304px of empty path, leaving
-// ~152px from mid-gap to the nearest unit -- comfortably outside the 80px splash
-// even at the higher swarm speeds of late levels. (2.0s/190px still let a shell
-// clip the clump edges once speed scaling was taken into account.)
-// Units inside a clump are packed tighter (0.03s) so the clump itself stays a
-// single dense Tesla target rather than a short line.
+const UPGRADE_STEPS_PER_SECTOR = 2;
+const UPGRADE_STEP_COSTS = [6, 7, 8, 9, 10, 11, 12, 13, 15, 19];
+
+// [XYZ203.01] Tower Target Lock-on Specs: Lock-on delay constants and targeted tower classification.
+const LOCK_ON_DELAY_LIGHT = 0.1;
+const LOCK_ON_DELAY_HEAVY = 0.5;
+const LOCKED_TARGET_TOWERS = ['laser', 'melter'];
+const MORTAR_BASE_TRAVEL_TIME = 1.0;
+
+// [XYZ204] Enemy Configurations: Base stats, shapes, speeds, bounties, and swarm clump parameters.
 const SWARM_CLUMP_SIZE = 10;
-// Swarm's debut level gets smaller clumps so the mechanic is introduced gently;
-// every later level uses the full SWARM_CLUMP_SIZE.
 const SWARM_CLUMP_SIZE_DEBUT = 8;
 const SWARM_DEBUT_LEVEL = 11;
 function swarmClumpSizeFor(lvl) {
@@ -360,31 +209,11 @@ function swarmClumpSizeFor(lvl) {
 }
 const SWARM_CLUMP_INTERVAL = 0.03;
 const SWARM_CLUMP_GAP = 3.2;
-// With 10 per clump instead of 6, total swarm units per wave went up a lot, so
-// per-unit bounty comes down to keep wave income roughly where it was.
 const SWARM_BOUNTY_SCALE = 0.62;
 
-// Clump COUNT by level/wave. Swarm debuts at L11 with 3 clumps (18 units) and
-// grows slowly; size per clump never changes, so the Mortar-proof gap survives
-// at every level. Boss waves pass an explicit count instead.
 function swarmClumpsFor(lvl, w) {
   return Math.min(4, 2 + Math.floor(Math.max(0, lvl - 11) / 10) + (w > 5 ? 1 : 0));
 }
-
-const UPGRADE_STEPS_PER_SECTOR = 2;
-
-const UPGRADE_STEP_COSTS = [6, 7, 8, 9, 10, 11, 12, 13, 15, 19]; // индекс 0 = цена шага 1
-
-// Block 4d/4e (requirements.md): universal Lock-on Delay before a tower's first
-// shot on a newly-acquired target, and which tower types "lock" onto a target
-// (ignoring other, further-along enemies) until it dies or leaves range. Light
-// weapons get 0.1s, heavy beam weapons get 0.5s; the delay itself is then
-// shortened by that tower's own powerRate meta upgrade (except Mortar, whose
-// powerRate instead speeds up its arc Travel Time -- see MORTAR_BASE_TRAVEL_TIME).
-const LOCK_ON_DELAY_LIGHT = 0.1;
-const LOCK_ON_DELAY_HEAVY = 0.5;
-const LOCKED_TARGET_TOWERS = ['laser', 'melter'];
-const MORTAR_BASE_TRAVEL_TIME = 1.0;
 
 const ENEMY_CONFIGS = {
   grunt: { shape: 'circle', color: '#f05f9f', glow: '#f05f9f', size: 11, baseSpeed: 55, baseHp: 40, baseBounty: 7 },
@@ -393,13 +222,14 @@ const ENEMY_CONFIGS = {
   swarm: { shape: 'diamond', color: '#00ffcc', glow: '#00ffcc', size: 8, baseSpeed: 170, baseHp: 16, baseBounty: 3 },
   blinker: { shape: 'hexagon', color: '#3b82f6', glow: '#60a5fa', size: 12, baseSpeed: 62, baseHp: 65, baseBounty: 8 },
   goliath: { shape: 'octagon', color: '#8964c4', glow: '#7050a4', size: 15, baseSpeed: 30, baseHp: 260, baseBounty: 18 },
-  emp_bomber: { shape: 'triangle_inverted', color: '#38bdf8', glow: '#0284c7', size: 13, baseSpeed: 40, baseHp: 170, baseBounty: 14 },
+  emp_bomber: { shape: 'triangle_inverted', color: '#38bdf8', glow: '#f05f9f', size: 13, baseSpeed: 40, baseHp: 170, baseBounty: 14 },
   hive_empress: { shape: 'diamond', color: '#00ffcc', glow: '#00ffcc', size: 15, baseSpeed: 38, baseHp: 2200, baseBounty: 60 },
   chronos_warp: { shape: 'hexagon', color: '#3b82f6', glow: '#60a5fa', size: 16, baseSpeed: 40, baseHp: 4200, baseBounty: 85 },
   titan_core: { shape: 'octagon', color: '#f97316', glow: '#fb923c', size: 17, baseSpeed: 28, baseHp: 5800, baseBounty: 110 },
-  emp_overlord: { shape: 'triangle_inverted', color: '#38bdf8', glow: '#0284c7', size: 17, baseSpeed: 30, baseHp: 7200, baseBounty: 140 }
+  emp_overlord: { shape: 'triangle_inverted', color: '#38bdf8', glow: '#f05f9f', size: 17, baseSpeed: 30, baseHp: 7200, baseBounty: 140 }
 };
 
+// [XYZ205] Map Catalog: Grid dimensions, tile paths, and obstacle locations for campaign levels.
 const MAP_CATALOG = {
   L1: { name: "Straight Path", cols: 5, rows: 7, path: [{c: 2, r: 0}, {c: 2, r: 6}] },
   L2: { name: "First Turn", cols: 6, rows: 6, path: [{c: 4, r: 1}, {c: 4, r: 4}, {c: 1, r: 4}] },
@@ -453,18 +283,14 @@ const MAP_CATALOG = {
   L50: { name: "Final Apex", cols: 20, rows: 17, path: [{c: 0, r: 16}, {c: 0, r: 11}, {c: 6, r: 11}, {c: 6, r: 16}, {c: 1, r: 16}, {c: 1, r: 12}, {c: 5, r: 12}, {c: 5, r: 15}, {c: 2, r: 15}, {c: 2, r: 10}, {c: 19, r: 10}, {c: 19, r: 16}, {c: 14, r: 16}, {c: 14, r: 11}, {c: 18, r: 11}, {c: 18, r: 15}, {c: 15, r: 15}, {c: 15, r: 12}, {c: 17, r: 12}, {c: 17, r: 2}, {c: 14, r: 2}, {c: 14, r: 5}, {c: 18, r: 5}, {c: 18, r: 1}, {c: 13, r: 1}, {c: 13, r: 6}, {c: 19, r: 6}, {c: 19, r: 0}, {c: 0, r: 0}, {c: 0, r: 6}, {c: 6, r: 6}, {c: 6, r: 1}, {c: 1, r: 1}, {c: 1, r: 5}, {c: 5, r: 5}, {c: 5, r: 2}, {c: 2, r: 2}, {c: 2, r: 8}, {c: 10, r: 8}], blocked: [{c: 0, r: 10}, {c: 1, r: 10}, {c: 1, r: 9}, {c: 1, r: 8}, {c: 1, r: 7}, {c: 0, r: 7}, {c: 0, r: 8}, {c: 0, r: 9}, {c: 7, r: 16}, {c: 8, r: 16}, {c: 9, r: 16}, {c: 10, r: 16}, {c: 11, r: 16}, {c: 12, r: 16}, {c: 13, r: 16}, {c: 13, r: 15}, {c: 13, r: 14}, {c: 13, r: 13}, {c: 13, r: 12}, {c: 13, r: 11}, {c: 12, r: 11}, {c: 11, r: 11}, {c: 10, r: 11}, {c: 9, r: 11}, {c: 8, r: 11}, {c: 7, r: 11}, {c: 7, r: 12}, {c: 7, r: 13}, {c: 7, r: 14}, {c: 7, r: 15}, {c: 8, r: 15}, {c: 9, r: 15}, {c: 10, r: 15}, {c: 11, r: 15}, {c: 12, r: 15}, {c: 12, r: 14}, {c: 11, r: 14}, {c: 10, r: 14}, {c: 9, r: 14}, {c: 8, r: 14}, {c: 8, r: 13}, {c: 9, r: 13}, {c: 10, r: 13}, {c: 11, r: 13}, {c: 12, r: 12}, {c: 12, r: 13}, {c: 11, r: 12}, {c: 10, r: 12}, {c: 9, r: 12}, {c: 8, r: 12}, {c: 7, r: 1}, {c: 8, r: 1}, {c: 9, r: 1}, {c: 10, r: 1}, {c: 11, r: 1}, {c: 12, r: 1}, {c: 12, r: 2}, {c: 12, r: 3}, {c: 12, r: 4}, {c: 12, r: 5}, {c: 12, r: 6}, {c: 11, r: 6}, {c: 10, r: 6}, {c: 9, r: 6}, {c: 8, r: 6}, {c: 7, r: 6}, {c: 7, r: 5}, {c: 7, r: 4}, {c: 7, r: 3}, {c: 7, r: 2}, {c: 8, r: 2}, {c: 9, r: 2}, {c: 10, r: 2}, {c: 11, r: 2}, {c: 11, r: 3}, {c: 10, r: 3}, {c: 9, r: 3}, {c: 8, r: 3}, {c: 8, r: 4}, {c: 9, r: 4}, {c: 10, r: 4}, {c: 11, r: 4}, {c: 11, r: 5}, {c: 10, r: 5}, {c: 9, r: 5}, {c: 8, r: 5}, {c: 18, r: 9}, {c: 19, r: 9}, {c: 19, r: 8}, {c: 19, r: 7}, {c: 18, r: 7}, {c: 18, r: 8}, {c: 16, r: 9}, {c: 16, r: 8}, {c: 16, r: 7}, {c: 15, r: 7}, {c: 14, r: 7}, {c: 14, r: 8}, {c: 15, r: 8}, {c: 15, r: 9}, {c: 14, r: 9}, {c: 13, r: 9}, {c: 13, r: 8}, {c: 13, r: 7}, {c: 12, r: 7}, {c: 12, r: 8}, {c: 12, r: 9}, {c: 2, r: 9}, {c: 3, r: 7}, {c: 4, r: 7}, {c: 5, r: 7}, {c: 6, r: 7}, {c: 7, r: 7}, {c: 3, r: 9}, {c: 4, r: 9}, {c: 5, r: 9}, {c: 6, r: 9}, {c: 7, r: 9}, {c: 8, r: 9}, {c: 8, r: 7}] },
 };
 
-// Continuous difficulty scaling for the whole L11-L50 range (from when global
-// upgrades unlock through to the finale), replacing the old per-sector multipliers
-// that reset at each sector boundary. Applies to regular escort spawns; named boss
-// units keep their own explicit HP values (see each LEVELS_DATA[10k] block) since
-// those are tuned individually, but scale on the same curve.
+// [XYZ206] Level Scaling & Spawn Factory: Continuous level speed and count scaling helpers, plus enemy spawn object factory.
 function getLevelSpeedMult(lvl) {
   const t = Math.max(0, Math.min(1, (lvl - 11) / 39));
-  return 1.0 + t * 0.35; // 1.0 at L11 -> 1.35 at L50
+  return 1.0 + t * 0.35;
 }
 function getLevelCountBonus(lvl) {
   const t = Math.max(0, Math.min(1, (lvl - 11) / 39));
-  return Math.floor(t * 6); // +0 at L11 -> +6 at L50
+  return Math.floor(t * 6);
 }
 
 function createEnemySpawn(type, count, opts = {}) {
@@ -484,24 +310,17 @@ function createEnemySpawn(type, count, opts = {}) {
     hp: calculatedHp,
     speed: calculatedSpeed,
     interval: opts.interval ?? (type === 'swarm' ? 0.15 : (type === 'scout' ? 0.48 : (type === 'tank' ? 1.3 : (type === 'goliath' ? 1.5 : 0.7)))),
-    // Swarm only: how many SWARM_CLUMP_SIZE-unit clumps this group arrives in.
     clumps: opts.clumps,
     bounty: Math.max(1, Math.round(cfg.baseBounty * bountyMult))
   };
 }
 
-// `tune` lets a single level dial its trash mobs and its miniboss independently.
-// Used by L8/L9, where the wave chaff was doing most of the killing and the
-// miniboss was a pushover -- the fix is weaker mobs + a much beefier miniboss, so
-// the level is won by positioning a few well-upgraded towers rather than by
-// out-spamming a swarm of cheap ones.
+// [XYZ206.01] Standard Level Generator: Constructs wave definitions, enemy compositions, and boss encounters for campaign levels.
 function generateStandardLevel(lvl, mapId, wavesCount, sGold, baseHpScale, bossHpVal, bossType, tune = {}) {
   const mobHpMult = tune.mobHpMult ?? 1.0;
   const miniBossHpMult = tune.miniBossHpMult ?? 1.0;
   const wavesArr = [];
   const isBossLevel = (lvl % 10 === 0);
-
-
 
   for (let w = 1; w <= wavesCount; w++) {
     const isLastWave = (w === wavesCount);
@@ -512,8 +331,6 @@ function generateStandardLevel(lvl, mapId, wavesCount, sGold, baseHpScale, bossH
 
     if (w % 2 === 0) {
       const heavyType = lvl > 40 ? 'emp_bomber' : (lvl > 30 ? 'goliath' : (lvl > 20 ? 'blinker' : (lvl > 10 ? 'swarm' : 'tank')));
-      // Block 5 spec bands: Tank 1.2-1.4s, Goliath 1.4-1.6s singles; Blinker/
-      // EMP Bomber have no numeric spawn-interval target, keep their prior pacing.
       const heavyInterval = heavyType === 'tank' ? 1.3 : (heavyType === 'goliath' ? 1.5 : (heavyType === 'swarm' ? 0.15 : 0.95));
       spawns.push(createEnemySpawn(heavyType, Math.max(1, Math.floor(count * 0.3)), {
         clumps: heavyType === 'swarm' ? swarmClumpsFor(lvl, w) : undefined,

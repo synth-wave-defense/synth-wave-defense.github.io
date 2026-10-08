@@ -1,34 +1,11 @@
-<!-- Version: v2.12.0 -->
-<!-- Changelog v2.12.0: volume sliders, diagnostics, perf + test fixes. -->
-<!-- - Sound and Music on/off switches replaced by volume sliders (0-100%, 0 -->
-<!--   shows as OFF and mutes). One control covers both "quieter" and "off". -->
-<!--   applySfxVolume/applyMusicVolume also keep the boolean enabled flag in sync, -->
-<!--   which is deliberate: at zero, audio.js and music.js must short-circuit all -->
-<!--   their work rather than synthesise silence every frame, and that boolean is -->
-<!--   what older saves carry. Migration: a save without volumes falls back to -->
-<!--   100/70 (from enabled=true) or 0 (from enabled=false). -->
-<!-- - New in-browser diagnostics, no dev mode needed. F12 then: diag() for a full -->
-<!--   report, diag.audio(), diag.game(), diag.silent() (walks the exact chain -->
-<!--   that can mute the game and names the first real culprit), diag.fix() -->
-<!--   (force-wakes the audio graph and restarts the music bed), diag.testSound(). -->
-<!--   Each probe is individually wrapped so a broken subsystem reports as broken -->
-<!--   instead of throwing and hiding the rest of the report. -->
-<!-- - Perf: update() and updateWaveCircle() run 60x/s and were doing 5 -->
-<!--   document.getElementById calls per frame for nodes that never change. Added -->
-<!--   a memoised el() lookup (falls back to a fresh query if a node is ever -->
-<!--   detached). -->
-<!-- - Fixed a stale assertion in smoke-audio.js: the "empty category is silent" -->
-<!--   test re-evaluated music.js and assumed the fresh instance had no tracks. -->
-<!--   That stopped being true once TRACKS was filled with real filenames, so it -->
-<!--   was failing for the wrong reason. It now empties the lists explicitly via -->
-<!--   _tracks(). This was a broken TEST, not broken code. -->
+<!-- [XYZ100] Version: 1.36.02 - Synth Wave Defense HTML application layout and script bindings. -->
 <!DOCTYPE html>
 
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <script>
-    // Блокируем, если в адресе есть папка dev ИЛИ если запущен локально (localhost)
+    // [XYZ101] Environment Check: dynamically loads dev_gate.js if running in dev environment or localhost.
     const isDev = window.location.pathname.includes("dev-synth-wave-defense") || 
                   window.location.hostname === "localhost" || 
                   window.location.hostname === "127.0.0.1";
@@ -41,22 +18,30 @@
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Synth Wave Defense</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16.png">
   <link rel="stylesheet" href="fonts.css">
   <link rel="stylesheet" href="styles.css">
   <link rel="manifest" href="./manifest.json">
 </head>
 <body>
 
-<!-- Loading screen: the very first thing painted, before any game code runs. -->
-<!-- The synthwave field behind it is the same canvas scene the menus use, so -->
-<!-- the transition into the main menu is just this overlay fading out. -->
+<!-- [XYZ102] Audio Onboarding Screen: Headphones recommendation and audio gate modal overlay. -->
 <div class="loading-screen" id="loadingScreen">
-  <div class="loading-inner">
-    <div class="loading-word">Loading<span class="loading-dots" id="loadingDots"></span></div>
+  <div class="loading-inner audio-gate-content hidden" id="audioGateContent">
+    <div class="audio-gate-icon">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+        <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+      </svg>
+    </div>
+    <div class="audio-gate-title">Nice Music Incoming</div>
+    <div class="audio-gate-subtitle">Headphones Recommended</div>
+    <button class="menu-btn-primary-capsule audio-gate-ok-btn" id="audioGateOkBtn"><span>OK</span></button>
   </div>
 </div>
 
-<!-- CRASH SAFETY NET -->
+<!-- [XYZ103] Crash Safety Net: Global error logging and fallback UI overlay for unhandled runtime errors. -->
 <div id="crashFallbackScreen" style="display:none; position:fixed; inset:0; z-index:999999; background:#06070d; color:#f1f5f9; flex-direction:column; align-items:center; justify-content:center; text-align:center; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; padding:24px;">
   <div style="font-size:42px; margin-bottom:14px;">😵</div>
   <div style="font-size:20px; font-weight:800; margin-bottom:10px; color:#00e5ff;">Sorry, we'll fix it!</div>
@@ -141,9 +126,7 @@
 
 <canvas id="gameCanvas"></canvas>
 
-<!-- Top HUD Bar (Visual Direction 3H: one frosted capsule, icons on glass) -->
-<!-- Dev mode is deliberately unchanged behaviourally: tapping a resource still -->
-<!-- edits it, and LVL / wave still open their dropdowns. Only the chrome moved. -->
+<!-- [XYZ104] Top HUD Bar: Resource counters (diamonds, gold, base HP), level/wave indicator, and settings launcher. -->
 <div class="hud-top-bar" id="topHud">
   <div class="hud-left-group">
     <div class="badge-half" id="hudDiamondBadge" onclick="handleDevDiamondClick()">
@@ -171,7 +154,7 @@
 
       <div class="badge-divider"></div>
 
-<div class="badge-half" id="hpHalf" onclick="handleDevHpClick()">
+      <div class="badge-half" id="hpHalf" onclick="handleDevHpClick()">
         <div class="hud-icon" style="filter: drop-shadow(0 0 7px rgba(240,95,159,.9));">
           <div style="width:13px; height:12px; background:#f05f9f; clip-path:polygon(50% 100%, 4% 42%, 4% 18%, 26% 2%, 50% 20%, 74% 2%, 96% 18%, 96% 42%);"></div>
         </div>
@@ -180,9 +163,9 @@
     </div>
   </div>
 
-  <span class="hud-chapter-label hidden" id="startChapterLabel">CHAPTER 1</span>
+  <span class="hud-chapter-label hidden" id="startChapterLabel">TECH TREE</span>
 
-<div class="hud-right-group" id="hudRightGroup">
+  <div class="hud-right-group" id="hudRightGroup">
     <div class="hud-split-badge hidden" id="levelWaveSplitBadge">
       <div class="badge-half" id="levelHalf">
         <span class="match-val-text hud-static-label">LVL</span>
@@ -197,7 +180,7 @@
         <select id="devWaveSelect" class="hud-select-dropdown hidden" onchange="devJumpToWave(parseInt(this.value, 10))"></select>
       </div>
     </div>
-   <button class="hud-gear-btn" id="hudSettingsBtn" onclick="handleHudSettingsClick()" title="Settings & Pause">
+    <button class="hud-gear-btn" id="hudSettingsBtn" onclick="handleHudSettingsClick()" title="Settings & Pause">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="hud-gear-svg">
         <circle cx="12" cy="12" r="3.2"></circle>
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
@@ -206,12 +189,10 @@
   </div>
 </div>
 
-<!-- Incoming Boss / Mini-Boss Notification Banner -->
 <div class="incoming-alert-banner" id="incomingAlertBanner">
   <span class="incoming-alert-text" id="incomingAlertText">Boss Incoming</span>
 </div>
 
-<!-- New Tower Unlocked Banner -->
 <div class="new-tower-banner" id="newTowerBanner">
   <div class="new-tower-icon" id="newTowerBannerIcon"></div>
   <div class="new-tower-texts">
@@ -221,11 +202,10 @@
   </div>
 </div>
 
-<!-- Controls & Build UI Layer -->
+<!-- [XYZ105] Gameplay UI Layer: Floating wave circle button, tower build panel, and tower inspector overlay. -->
 <div class="ui-layer">
   <div></div>
 
-  <!-- Кнопка Go вынесена из controls-wrapper, чтобы не обрезаться overflow:hidden -->
   <button class="action-btn floating-wave-btn" id="waveBtn" onclick="triggerManualWave()">
     <div class="wave-circle-wrap">
       <svg class="wave-circle-svg" width="78" height="78" viewBox="0 0 78 78">
@@ -242,23 +222,21 @@
       <span class="cancel-zone-text">CANCEL</span>
     </div>
 
-    <!-- Панель постройки: только слоты башен -->
     <div class="controls-panel" id="buildPanel"></div>
 
-    <!-- Inspector Panel (Visual Direction 3G) -->
     <div class="controls-panel hidden" id="inspectPanel">
       <div class="selected-info">
-       <div class="selected-icon-box" id="inspectIconBox"></div>
-       <div class="selected-texts">
-        <span class="selected-title" id="inspectName">Gatling</span>
-        <span class="selected-lvl-text" id="inspectLvlText">LVL 1</span>
-        <div class="selected-level-bars" id="inspectLevelBars">
-         <div class="level-bar-seg" id="lvlBar1"></div>
-         <div class="level-bar-seg" id="lvlBar2"></div>
-        <div class="level-bar-seg" id="lvlBar3"></div>
-       </div>
+        <div class="selected-icon-box" id="inspectIconBox"></div>
+        <div class="selected-texts">
+          <span class="selected-title" id="inspectName">Gatling</span>
+          <span class="selected-lvl-text" id="inspectLvlText">LVL 1</span>
+          <div class="selected-level-bars" id="inspectLevelBars">
+            <div class="level-bar-seg" id="lvlBar1"></div>
+            <div class="level-bar-seg" id="lvlBar2"></div>
+            <div class="level-bar-seg" id="lvlBar3"></div>
+          </div>
+        </div>
       </div>
-    </div>
 
       <button class="btn-upgrade" id="inspectUpgradeBtn" onclick="upgradeSelectedTower()">
         <span class="upg-btn-title">
@@ -290,7 +268,6 @@
         </span>
       </button>
 
-      <!-- Кнопка закрытия инспектора (✖) -->
       <button class="btn-close-inspect" id="inspectCloseBtn" onclick="deselectTower()" title="Close">
         <svg viewBox="0 0 24 24" fill="none">
           <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -301,14 +278,16 @@
   </div>
 </div>
 
-<!-- Persistent Dev Mode Controls -->
+<!-- [XYZ106] Developer Tools Overlay: Developer bar with game speed, custom enemy spawner, and save tools. -->
 <label class="dev-mode-toggle" id="devModeToggle">
   <input type="checkbox" id="devModeCheckbox" onchange="toggleDevMode(this.checked)">
   <span>DEV MODE</span>
 </label>
 
 <select id="speedContainer" class="dev-speed-floating hidden" onchange="setGameSpeed(parseFloat(this.value))">
-  <option value="1">1x</option>
+  <option value="0.5">0.5x</option>
+  <option value="0.8">0.8x</option>
+  <option value="1" selected>1x</option>
   <option value="1.5">1.5x</option>
   <option value="2">2x</option>
   <option value="4">4x</option>
@@ -319,54 +298,57 @@
   <span>🗑 Clear Save</span>
 </button>
 
-<!-- Dev Mode Bar (Compact + Expandable) -->
-  <div class="dev-bar hidden" id="devBar">
-    <div class="dev-bar-top">
-      <div class="dev-fps-badge" id="devFpsBadge">FPS: 60</div>
-      
-      <button type="button" class="dev-icon-btn dev-speed-step-btn" onclick="stepDevSpeed(-1)" title="Decrease speed">−</button>
-      
-      <select id="speedContainer" class="dev-speed-select" onchange="setGameSpeed(parseFloat(this.value))">
-        <option value="1">1x</option>
-        <option value="1.5">1.5x</option>
-        <option value="2">2x</option>
-        <option value="4">4x</option>
-        <option value="8">8x</option>
-      </select>
+<div class="dev-bar hidden" id="devBar">
+  <div class="dev-bar-top">
+    <div class="dev-fps-badge" id="devFpsBadge">FPS: 60</div>
 
-      <button type="button" class="dev-icon-btn dev-speed-step-btn" onclick="stepDevSpeed(1)" title="Increase speed">+</button>
+    <button type="button" class="dev-icon-btn dev-speed-step-btn" onclick="stepDevSpeed(-1)" title="Decrease speed">−</button>
 
-      <button type="button" class="dev-icon-btn" id="devExpandBtn" onclick="toggleDevPanelExpand()" title="Details">▾</button>
-      <button type="button" class="dev-icon-btn dev-close-btn" onclick="closeDevMode()" title="Close Dev Mode">✕</button>
+    <select id="speedContainer" class="dev-speed-select" onchange="setGameSpeed(parseFloat(this.value))">
+      <option value="1">1x</option>
+      <option value="1.5">1.5x</option>
+      <option value="2">2x</option>
+      <option value="4">4x</option>
+      <option value="8">8x</option>
+    </select>
+
+    <button type="button" class="dev-icon-btn dev-speed-step-btn" onclick="stepDevSpeed(1)" title="Increase speed">+</button>
+
+    <button type="button" class="dev-icon-btn" id="devExpandBtn" onclick="toggleDevPanelExpand()" title="Details">▾</button>
+    <button type="button" class="dev-icon-btn dev-close-btn" onclick="closeDevMode()" title="Close Dev Mode">✕</button>
+  </div>
+
+  <div class="dev-details-pane hidden" id="devDetailsPane">
+    <div class="dev-actions-row">
+      <button type="button" class="dev-btn" id="livePauseBtn" onclick="toggleLivePause()">PAUSE GAME</button>
+      <button type="button" class="dev-btn dev-danger-btn" id="devClearSaveBtn" onclick="handleClearSaveClick()">CLEAR SAVE</button>
     </div>
 
-    <!-- Выпадающая часть с полными инструментами -->
-    <div class="dev-details-pane hidden" id="devDetailsPane">
-      <div class="dev-actions-row">
-        <button type="button" class="dev-btn" id="livePauseBtn" onclick="toggleLivePause()">PAUSE GAME</button>
-        <button type="button" class="dev-btn dev-danger-btn" id="devClearSaveBtn" onclick="handleClearSaveClick()">CLEAR SAVE</button>
-      </div>
+    <div class="dev-spawner-sub" id="devTrackRow">
+      <div class="dev-sub-title">NOW PLAYING</div>
+      <div class="dev-track-info" id="devTrackTitle">None</div>
+    </div>
 
-      <div class="dev-spawner-sub" id="devCustomSpawner">
-        <div class="dev-sub-title">SPAWNER</div>
-        <div class="dev-spawner-grid">
-          <select id="devSpawnType">
-            <option value="grunt">Grunt</option>
-            <option value="scout">Scout</option>
-            <option value="tank">Tank</option>
-            <option value="swarm">Swarm</option>
-            <option value="blinker">Blinker</option>
-            <option value="goliath">Goliath</option>
-            <option value="boss">Boss</option>
-          </select>
-          <input type="number" id="devSpawnCount" min="1" max="50" value="5" title="Count">
-          <button type="button" class="dev-btn" onclick="devSpawnCustomEnemies()">SPAWN</button>
-        </div>
+    <div class="dev-spawner-sub" id="devCustomSpawner">
+      <div class="dev-sub-title">SPAWNER</div>
+      <div class="dev-spawner-grid">
+        <select id="devSpawnType">
+          <option value="grunt">Grunt</option>
+          <option value="scout">Scout</option>
+          <option value="tank">Tank</option>
+          <option value="swarm">Swarm</option>
+          <option value="blinker">Blinker</option>
+          <option value="goliath">Goliath</option>
+          <option value="boss">Boss</option>
+        </select>
+        <input type="number" id="devSpawnCount" min="1" max="50" value="5" title="Count">
+        <button type="button" class="dev-btn" onclick="devSpawnCustomEnemies()">SPAWN</button>
       </div>
     </div>
   </div>
+</div>
 
-<!-- Start Screen -->
+<!-- [XYZ107] Navigation & Menu Overlays: Main menu, tech tree, shop, settings/pause, level selection, and match result screens. -->
 <div class="overlay-screen transparent-bg" id="startScreen">
   <div class="start-screen-container">
     <div class="start-screen-top-zone seq-in" style="animation-delay:.18s;">
@@ -382,25 +364,23 @@
   </div>
 </div>
 
-<!-- Upgrades Screen -->
 <div class="overlay-screen transparent-bg upgrades-bg hidden" id="upgradesScreen">
   <div class="upgrades-content-col">
-   <div class="upgrades-top-bar">
-    <div class="levels-top-diamonds">
-     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" stroke-linejoin="round">
-       <polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)"/>
-       <polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/>
-     </svg>
-     <span id="upgradesDiamondVal">0</span>
-   </div>
-  <span class="upgrades-top-label">TECH TREE</span>
-</div>
+    <div class="upgrades-top-bar">
+      <div class="levels-top-diamonds">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" stroke-linejoin="round">
+          <polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)"/>
+          <polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/>
+        </svg>
+        <span id="upgradesDiamondVal">0</span>
+      </div>
+      <span class="upgrades-top-label">TECH TREE</span>
+    </div>
     <div class="upgrades-row-list" id="upgradesTreeBody"></div>
     <button class="menu-btn-glass-capsule upgrades-back-btn" onclick="closeUpgradesScreen()"><span>BACK</span></button>
   </div>
 </div>
 
-<!-- Gifts & Shop Screen -->
 <div class="overlay-screen transparent-bg upgrades-bg hidden" id="shopScreen">
   <div class="upgrades-content-col">
     <div class="upgrades-top-bar">
@@ -415,8 +395,6 @@
     </div>
 
     <div class="upgrades-row-list" id="shopBodyList">
-      
-      <!-- Section 1: Daily Gifts -->
       <div class="upgrades-row-group-label">Daily Gifts</div>
       <div class="shop-card-highlight">
         <div class="shop-card-left">
@@ -436,8 +414,44 @@
         </button>
       </div>
 
-      <!-- Section 2: Permanent Perks -->
       <div class="upgrades-row-group-label">Special Perks</div>
+      <div class="shop-card">
+        <div class="shop-card-left">
+          <div class="shop-card-icon cyan-glow">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <div class="shop-card-info">
+            <span class="shop-card-title">Time Modulation Tier 1</span>
+            <span class="shop-card-sub">Unlock HUD speed controls (0.8x, 1.0x, 1.5x)</span>
+          </div>
+        </div>
+        <button id="timeModT1Btn" class="shop-item-btn shop-btn-buy" onclick="buyShopIAP('time_mod_t1')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" stroke-linejoin="round" style="flex:none;"><polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)"/><polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/></svg>
+          <span>40</span>
+        </button>
+      </div>
+
+      <div class="shop-card">
+        <div class="shop-card-left">
+          <div class="shop-card-icon cyan-glow">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+          </div>
+          <div class="shop-card-info">
+            <span class="shop-card-title">Time Modulation Tier 2</span>
+            <span class="shop-card-sub">Unlock extreme pacing limits (0.5x, 2.0x)</span>
+          </div>
+        </div>
+        <button id="timeModT2Btn" class="shop-item-btn shop-btn-buy" onclick="buyShopIAP('time_mod_t2')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" stroke-linejoin="round" style="flex:none;"><polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)"/><polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/></svg>
+          <span>50</span>
+        </button>
+      </div>
+
       <div class="shop-card">
         <div class="shop-card-left">
           <div class="shop-card-icon gold-glow">
@@ -456,7 +470,6 @@
         </button>
       </div>
 
-      <!-- Section 3: Diamond Packs -->
       <div class="upgrades-row-group-label">Diamond Bundles</div>
       
       <div class="shop-card">
@@ -510,14 +523,12 @@
           <span>$3.49</span>
         </button>
       </div>
-
     </div>
     
     <button class="menu-btn-glass-capsule upgrades-back-btn" onclick="closeShopScreen()"><span>BACK</span></button>
   </div>
 </div>
 
-<!-- Settings & Pause Screen -->
 <div class="overlay-screen result-screen hidden" id="settingsScreen">
   <div class="result-stack">
     <div class="result-heading seq-in">
@@ -525,17 +536,14 @@
       <div class="result-title" id="settingsTitle">Paused</div>
     </div>
     
-    <!-- 1. Боевые действия (вверху) -->
     <div class="settings-combat-actions hidden" id="settingsCombatActions">
       <button class="result-btn result-btn-primary" onclick="closeSettings()"><span>RESUME</span></button>
       <button class="result-btn" onclick="retryLevel()"><span>RETRY</span></button>
       <button class="result-btn" onclick="giveUpMatch()"><span>GIVE UP</span></button>
     </div>
 
-    <!-- 2. Виджет Loadout (между кнопками и настройками) -->
     <div class="loadout-anchor" id="loadoutAnchor-pause"></div>
 
-    <!-- 3. Сворачиваемый блок системных настроек -->
     <div class="settings-collapsible-widget" id="settingsCollapsible">
       <div class="settings-collapsible-header" onclick="toggleSettingsAccordion()">
         <span class="settings-collapsible-label">Settings</span>
@@ -588,16 +596,15 @@
             <input type="range" class="vol-range" id="settingSfxVol" min="0" max="100" step="5" value="100"
                    oninput="setSfxVolume(this.value)">
           </div>
+          <div class="setting-version-label" id="settingsVersionLabel">Version: 1.36.02</div>
         </div>
       </div>
     </div>
 
-    <!-- Кнопка Back (когда открыто из главного меню) -->
     <button class="menu-btn-glass-capsule" id="settingsBackBtn" onclick="closeSettings()"><span>BACK</span></button>
   </div>
 </div>
 
-<!-- Levels Selection Screen -->
 <div class="overlay-screen levels-bg hidden" id="levelsScreen">
   <div class="levels-top-bar">
     <div class="levels-top-diamonds">
@@ -627,7 +634,6 @@
   <button class="menu-btn-glass-capsule" style="margin-top: auto; margin-bottom: 24px; min-height: 48px;" onclick="showStartScreen()"><span>BACK</span></button>
 </div>
 
-<!-- Shared "Towers Selected" loadout widget -->
 <div class="loadout-widget hidden" id="loadoutWidget">
   <div class="loadout-widget-header" onclick="toggleLoadoutWidgetExpanded()">
     <span class="loadout-widget-label">TOWERS SELECTED</span>
@@ -642,7 +648,6 @@
   </div>
 </div>
 
-<!-- Give Up Confirmation Modal -->
 <div class="overlay-screen result-screen hidden" id="giveUpConfirmModal" style="z-index: 10000;">
   <div class="result-stack" style="background: rgba(10, 14, 28, 0.95); border: 1px solid rgba(0, 229, 255, 0.3); border-radius: 16px; padding: 24px; max-width: 320px;">
     <div class="result-heading seq-in" style="margin-bottom: 12px;">
@@ -656,7 +661,6 @@
   </div>
 </div>
 
-<!-- Pause Screen (Visual Direction 9A language) -->
 <div class="overlay-screen result-screen hidden" id="pauseScreen">
   <div class="result-stack">
     <div class="result-heading seq-in">
@@ -671,10 +675,6 @@
   </div>
 </div>
 
-<!-- Milestone Screens: shown BEFORE the victory screen after every level that -->
-<!-- is a multiple of 10. Steps are built in ui.js (buildMilestoneSteps) -- the -->
-<!-- sector-complete and loadout-intro steps only appear once, at level 10, -->
-<!-- while the new-tower step repeats every 10 levels. -->
 <div class="overlay-screen result-screen hidden" id="milestoneScreen">
   <div class="result-stack">
     <div class="result-heading seq-in">
@@ -691,7 +691,6 @@
   </div>
 </div>
 
-<!-- Victory Screen -->
 <div class="overlay-screen result-screen hidden" id="victoryScreen">
   <div class="result-stack">
     <div class="result-heading seq-in">
@@ -725,7 +724,6 @@
   <div class="menu-title" style="font-size: 22px;">AD PLAYING...</div>
 </div>
 
-<!-- Defeat Screen -->
 <div class="overlay-screen result-screen is-fail hidden" id="defeatScreen">
   <div class="defeat-flash" id="defeatFlash"></div>
   <div class="result-stack">
@@ -753,7 +751,7 @@
 <script src="engine.js"></script>
 <script src="ui.js"></script>
 <script>
-// Bootstrap
+// [XYZ108] Application Bootstrap: Loads save data, configures audio systems, initializes build panel, and launches game loop.
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) forcePauseForBackground();
   else musicResume();
@@ -778,26 +776,6 @@ window.addEventListener('popstate', () => {
 const devCheckboxEl = document.getElementById('devModeCheckbox');
 const initialDevState = devCheckboxEl ? devCheckboxEl.checked : false;
 
-const LOADING_DOT_MS = 220;
-const LOADING_MIN_MS = LOADING_DOT_MS * 3;
-const loadingStartedAt = Date.now();
-let loadingDotCount = 0;
-const loadingDotsEl = document.getElementById('loadingDots');
-const loadingDotTimer = setInterval(() => {
-  loadingDotCount = (loadingDotCount % 3) + 1;
-  if (loadingDotsEl) loadingDotsEl.textContent = '.'.repeat(loadingDotCount);
-}, LOADING_DOT_MS);
-
-function finishLoading() {
-  clearInterval(loadingDotTimer);
-  if (loadingDotsEl) loadingDotsEl.textContent = '...';
-  const screen = document.getElementById('loadingScreen');
-  if (screen) {
-    screen.classList.add('fading');
-    setTimeout(() => screen.classList.add('hidden'), 420);
-  }
-}
-
 loadGame();
 applySfxVolume(settings.sfxVolume != null ? settings.sfxVolume : (settings.sfxEnabled === false ? 0 : 100), false);
 try { 
@@ -808,6 +786,40 @@ try {
 } catch (e) {}
 try { if (typeof SFX !== 'undefined' && SFX) SFX.autoload(); } catch (e) {}
 applyMusicVolume(settings.musicVolume != null ? settings.musicVolume : (settings.musicEnabled === false ? 0 : 70), false);
+
+function finishLoading() {
+  const isMusicActive = settings.musicVolume > 0 && settings.musicEnabled !== false && typeof MusicManager !== 'undefined' && MusicManager.isEnabled();
+  const screen = document.getElementById('loadingScreen');
+
+  if (!isMusicActive) {
+    if (screen) {
+      screen.classList.add('fading');
+      setTimeout(() => screen.classList.add('hidden'), 420);
+    }
+    return;
+  }
+
+  const gateContent = document.getElementById('audioGateContent');
+  if (gateContent) gateContent.classList.remove('hidden');
+
+  const onGateTap = () => {
+    try { if (typeof SFX !== 'undefined' && SFX) SFX.unlock(); } catch (e) {}
+    musicUnlock();
+    music('menu');
+    if (screen) {
+      screen.classList.add('fading');
+      setTimeout(() => screen.classList.add('hidden'), 420);
+    }
+  };
+
+  if (screen) {
+    screen.style.cursor = 'pointer';
+    screen.addEventListener('pointerdown', onGateTap, { once: true, capture: true });
+  } else {
+    onGateTap();
+  }
+}
+
 document.addEventListener('pointerdown', musicUnlock, { once: true, capture: true });
 if (settings.perfModeOverride === 'low' || settings.perfModeOverride === 'high') {
   perfMode = settings.perfModeOverride;
@@ -823,10 +835,10 @@ safeTrack('app_launch', {});
 
 requestAnimationFrame(gameLoop);
 
-setTimeout(finishLoading, Math.max(0, LOADING_MIN_MS - (Date.now() - loadingStartedAt)));
+finishLoading();
 </script>
 
-<!-- First-run tutorial overlay -->
+<!-- [XYZ109] Tutorial Overlay & Service Worker: First-run interactive spotlight layer and PWA offline Service Worker registration. -->
 <div class="tutorial-layer hidden" id="tutorialLayer">
   <div class="tutorial-spotlight hidden" id="tutorialSpotlight"></div>
   <div class="tutorial-drop-ring hidden" id="tutorialDropRing"></div>
@@ -846,5 +858,15 @@ setTimeout(finishLoading, Math.max(0, LOADING_MIN_MS - (Date.now() - loadingStar
 <button class="tutorial-skip-btn hidden" id="tutorialSkipBtn" onclick="skipTutorial()">Skip Tutorial</button>
 
 <div class="hint-toast" id="hintToast"></div>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./sw.js').catch(function (err) {
+      console.warn('Service worker registration failed:', err);
+    });
+  });
+}
+</script>
 </body>
 </html>
