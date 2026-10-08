@@ -1,4 +1,5 @@
 {
+  "_comment": "[MAN100] Web Application Manifest: Web app metadata, display mode, and PWA icon definitions.",
   "name": "Synth Wave Defense",
   "short_name": "Synth Wave TD",
   "description": "A synthwave tower defense game with geometric enemies, glowing towers, atmospheric music, and accessible low-to-medium difficulty.",

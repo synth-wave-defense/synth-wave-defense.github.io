@@ -1,11 +1,11 @@
-<!-- [XYZ100] Version: 1.36.02 - Synth Wave Defense HTML application layout and script bindings. -->
+<!-- [HTM100] Version: 1.36.03 - Synth Wave Defense HTML application layout and script bindings. -->
 <!DOCTYPE html>
 
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <script>
-    // [XYZ101] Environment Check: dynamically loads dev_gate.js if running in dev environment or localhost.
+    // [HTM101] Environment Check: dynamically loads dev_gate.js if running in dev environment or localhost.
     const isDev = window.location.pathname.includes("dev-synth-wave-defense") || 
                   window.location.hostname === "localhost" || 
                   window.location.hostname === "127.0.0.1";
@@ -26,7 +26,7 @@
 </head>
 <body>
 
-<!-- [XYZ102] Audio Onboarding Screen: Headphones recommendation and audio gate modal overlay. -->
+<!-- [HTM102] Audio Onboarding Screen: Headphones recommendation and audio gate modal overlay. -->
 <div class="loading-screen" id="loadingScreen">
   <div class="loading-inner audio-gate-content hidden" id="audioGateContent">
     <div class="audio-gate-icon">
@@ -41,7 +41,7 @@
   </div>
 </div>
 
-<!-- [XYZ103] Crash Safety Net: Global error logging and fallback UI overlay for unhandled runtime errors. -->
+<!-- [HTM103] Crash Safety Net: Global error logging and fallback UI overlay for unhandled runtime errors. -->
 <div id="crashFallbackScreen" style="display:none; position:fixed; inset:0; z-index:999999; background:#06070d; color:#f1f5f9; flex-direction:column; align-items:center; justify-content:center; text-align:center; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; padding:24px;">
   <div style="font-size:42px; margin-bottom:14px;">😵</div>
   <div style="font-size:20px; font-weight:800; margin-bottom:10px; color:#00e5ff;">Sorry, we'll fix it!</div>
@@ -126,7 +126,7 @@
 
 <canvas id="gameCanvas"></canvas>
 
-<!-- [XYZ104] Top HUD Bar: Resource counters (diamonds, gold, base HP), level/wave indicator, and settings launcher. -->
+<!-- [HTM104] Top HUD Bar: Resource counters (diamonds, gold, base HP), level/wave indicator, and settings launcher. -->
 <div class="hud-top-bar" id="topHud">
   <div class="hud-left-group">
     <div class="badge-half" id="hudDiamondBadge" onclick="handleDevDiamondClick()">
@@ -202,7 +202,7 @@
   </div>
 </div>
 
-<!-- [XYZ105] Gameplay UI Layer: Floating wave circle button, tower build panel, and tower inspector overlay. -->
+<!-- [HTM105] Gameplay UI Layer: Floating wave circle button, tower build panel, and tower inspector overlay. -->
 <div class="ui-layer">
   <div></div>
 
@@ -278,7 +278,7 @@
   </div>
 </div>
 
-<!-- [XYZ106] Developer Tools Overlay: Developer bar with game speed, custom enemy spawner, and save tools. -->
+<!-- [HTM106] Developer Tools Overlay: Developer bar with game speed, custom enemy spawner, and save tools. -->
 <label class="dev-mode-toggle" id="devModeToggle">
   <input type="checkbox" id="devModeCheckbox" onchange="toggleDevMode(this.checked)">
   <span>DEV MODE</span>
@@ -348,7 +348,7 @@
   </div>
 </div>
 
-<!-- [XYZ107] Navigation & Menu Overlays: Main menu, tech tree, shop, settings/pause, level selection, and match result screens. -->
+<!-- [HTM107] Navigation & Menu Overlays: Main menu, tech tree, shop, settings/pause, level selection, and match result screens. -->
 <div class="overlay-screen transparent-bg" id="startScreen">
   <div class="start-screen-container">
     <div class="start-screen-top-zone seq-in" style="animation-delay:.18s;">
@@ -596,7 +596,7 @@
             <input type="range" class="vol-range" id="settingSfxVol" min="0" max="100" step="5" value="100"
                    oninput="setSfxVolume(this.value)">
           </div>
-          <div class="setting-version-label" id="settingsVersionLabel">Version: 1.36.02</div>
+          <div class="setting-version-label" id="settingsVersionLabel">Version: 1.36.03</div>
         </div>
       </div>
     </div>
@@ -751,7 +751,7 @@
 <script src="engine.js"></script>
 <script src="ui.js"></script>
 <script>
-// [XYZ108] Application Bootstrap: Loads save data, configures audio systems, initializes build panel, and launches game loop.
+// [HTM108] Application Bootstrap: Loads save data, configures audio systems, initializes build panel, and launches game loop.
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) forcePauseForBackground();
   else musicResume();
@@ -838,7 +838,7 @@ requestAnimationFrame(gameLoop);
 finishLoading();
 </script>
 
-<!-- [XYZ109] Tutorial Overlay & Service Worker: First-run interactive spotlight layer and PWA offline Service Worker registration. -->
+<!-- [HTM109] Tutorial Overlay & Service Worker: First-run interactive spotlight layer and PWA offline Service Worker registration. -->
 <div class="tutorial-layer hidden" id="tutorialLayer">
   <div class="tutorial-spotlight hidden" id="tutorialSpotlight"></div>
   <div class="tutorial-drop-ring hidden" id="tutorialDropRing"></div>
