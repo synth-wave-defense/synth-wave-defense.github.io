@@ -2115,6 +2115,7 @@ function showLevelSelectFromGame() {
   gameState = 'LEVELS';
 }
 
+// javascript-obfuscator: disable
 function update(dt) {
   if (cameraShakeTimer > 0) {
     cameraShakeTimer -= dt;
@@ -2868,3 +2869,4 @@ for (let i = lightningBolts.length - 1; i >= 0; i--) {
     victoryDelayTimer = 0;
   }
 }
+// javascript-obfuscator: enable
