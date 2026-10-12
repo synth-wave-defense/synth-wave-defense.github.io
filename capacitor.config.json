@@ -1,5 +1,8 @@
 {
   "appId": "io.github.synthwave.defense",
   "appName": "Synth Wave Defense",
-  "webDir": "www"
+  "webDir": "www",
+  "server": {
+    "hostname": "synth-wave-defense.github.io"
+  }
 }
