@@ -6,15 +6,15 @@
   <meta charset="UTF-8">
   <script>
     // [HTM101] Environment Check: dynamically loads dev_gate.js if running in dev environment or localhost.
-    const isDev = window.location.pathname.includes("dev-synth-wave-defense") || 
-                  window.location.hostname === "localhost" || 
-                  window.location.hostname === "127.0.0.1";
+    const isDevHost = window.location.hostname.includes('dev-synth-wave-defense') ||
+                    window.location.hostname === 'localhost' ||
+                    window.location.protocol === 'file:';
 
-    if (isDev) {
-      const s = document.createElement("script");
-      s.src = "dev_gate.js";
-      document.head.appendChild(s);
-    }
+  if (isDevHost && window.location.hostname !== 'synth-wave-defense.github.io') {
+    const s = document.createElement("script");
+    s.src = "dev_gate.js";
+    document.head.appendChild(s);
+  }
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Synth Wave Defense</title>
