@@ -1,0 +1,267 @@
+// Synth Wave Defense -- updater.js
+// OTA Live Updates Manager (Filesystem DL + NativeOtaBridge + Full Diagnostics - No CapacitorUpdater dependency)
+
+(function () {
+  'use strict';
+
+  const REMOTE_MANIFEST_URL = 'https://raw.githubusercontent.com/synth-wave-defense/synth-wave-defense.github.io/main/www/update_manifest.json';
+  const LOCAL_MANIFEST_PATH = 'update_manifest.json';
+  const REQUEST_TIMEOUT_MS = 8000;
+  const ZIP_FILENAME = 'ota_probe_bundle.zip';
+
+  const OtaDiagnostics = {
+    step: 'IDLE',
+    pluginAvailable: false,
+    notifyReadyStatus: 'CHECKING',
+    activeBundleInfo: 'builtin',
+    downloadedBundlesList: 'none',
+    networkConnected: 'unknown',
+    localVersion: '—',
+    remoteFetchStatus: 'NOT_STARTED',
+    remoteVersion: '—',
+    bundleUrl: '—',
+    updateNeeded: '—',
+    downloadStatus: 'IDLE',
+    downloadProgress: 0,
+    downloadedBundleId: '—',
+    nextQueueStatus: 'IDLE',
+    lastError: 'none',
+    triageT1Fetch: '—',
+    triageT2FsDl: '—',
+    triageT3LocalUpd: '—',
+    triageT4DirectUpd: '—',
+    logs: []
+  };
+
+  function logOta(msg) {
+    const timeStr = new Date().toLocaleTimeString();
+    const line = `[${timeStr}] ${msg}`;
+    console.log('[Updater]', msg);
+    OtaDiagnostics.logs.push(line);
+    if (OtaDiagnostics.logs.length > 16) OtaDiagnostics.logs.shift();
+  }
+
+  window.OtaDiagnostics = OtaDiagnostics;
+
+  function getPlugin(name) {
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins[name]) {
+      return window.Capacitor.Plugins[name];
+    }
+    return null;
+  }
+
+  function formatErr(err) {
+    if (!err) return 'unknown';
+    if (typeof err === 'string') return err;
+    if (err.message) return err.message;
+    try { return JSON.stringify(err); } catch (e) { return String(err); }
+  }
+
+  function refreshNativeBridgeStatus() {
+    if (window.NativeOtaBridge && typeof window.NativeOtaBridge.getStatusJson === 'function') {
+      try {
+        const st = JSON.parse(window.NativeOtaBridge.getStatusJson());
+        OtaDiagnostics.pluginAvailable = true;
+        OtaDiagnostics.notifyReadyStatus = 'NativeBridge OK';
+        OtaDiagnostics.activeBundleInfo = `act:${st.activeVersion} | boot:${st.bootLog}`;
+        OtaDiagnostics.downloadedBundlesList = `pend:${st.pendingVersion} | srv:${st.currentServerPath}`;
+        OtaDiagnostics.triageT4DirectUpd = `Boot: ${st.bootLog || 'ok'}`;
+      } catch (e) {
+        OtaDiagnostics.notifyReadyStatus = 'Bridge JSON Err';
+      }
+    } else {
+      OtaDiagnostics.pluginAvailable = false;
+      OtaDiagnostics.notifyReadyStatus = 'NO_BRIDGE (Old APK)';
+      OtaDiagnostics.triageT4DirectUpd = 'Need new APK!';
+    }
+  }
+
+  async function fetchWithTimeout(url, timeoutMs) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(`${url}?t=${Date.now()}`, {
+        signal: controller.signal,
+        cache: 'no-store'
+      });
+      clearTimeout(timer);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.json();
+    } catch (err) {
+      clearTimeout(timer);
+      throw err;
+    }
+  }
+
+  const AppUpdater = {
+    init: async function () {
+      OtaDiagnostics.step = 'INIT_START';
+      OtaDiagnostics.lastError = 'none';
+      OtaDiagnostics.triageT1Fetch = '—';
+      OtaDiagnostics.triageT2FsDl = '—';
+      OtaDiagnostics.triageT3LocalUpd = '—';
+      logOta('Starting OTA check...');
+
+      refreshNativeBridgeStatus();
+
+      // 1. Локальный манифест
+      let localManifest = null;
+      try {
+        const localRes = await fetch(`${LOCAL_MANIFEST_PATH}?t=${Date.now()}`, { cache: 'no-store' });
+        localManifest = await localRes.json();
+        OtaDiagnostics.localVersion = (localManifest && localManifest.version) ? String(localManifest.version) : 'MISSING';
+      } catch (e) {
+        OtaDiagnostics.localVersion = 'ERROR';
+        OtaDiagnostics.lastError = 'Local: ' + formatErr(e);
+      }
+
+      const verLabel = document.getElementById('settingsVersionLabel');
+      if (verLabel && OtaDiagnostics.localVersion && OtaDiagnostics.localVersion !== '—') {
+        verLabel.textContent = `Version: ${OtaDiagnostics.localVersion}`;
+      }
+
+      if (window.MusicDownloader && localManifest) {
+        window.MusicDownloader.setManifest(localManifest);
+      }
+
+      // 2. Сеть
+      const Network = getPlugin('Network');
+      if (Network) {
+        try {
+          const status = await Network.getStatus();
+          OtaDiagnostics.networkConnected = status.connected ? `YES (${status.connectionType || 'net'})` : 'NO';
+          if (!status.connected) {
+            OtaDiagnostics.step = 'OFFLINE';
+            return;
+          }
+        } catch (e) {}
+      }
+
+      // 3. Удаленный манифест
+      OtaDiagnostics.step = 'FETCH_MANIFEST';
+      let remoteManifest = null;
+      try {
+        remoteManifest = await fetchWithTimeout(REMOTE_MANIFEST_URL, REQUEST_TIMEOUT_MS);
+        OtaDiagnostics.remoteFetchStatus = '200 OK';
+        OtaDiagnostics.remoteVersion = String(remoteManifest.version || 'NONE');
+        OtaDiagnostics.bundleUrl = String(remoteManifest.bundleUrl || 'NONE');
+      } catch (e) {
+        OtaDiagnostics.remoteFetchStatus = 'FAIL: ' + formatErr(e);
+        OtaDiagnostics.lastError = 'Manifest: ' + formatErr(e);
+        OtaDiagnostics.step = 'MANIFEST_ERR';
+      }
+
+      const activeManifest = remoteManifest || localManifest;
+      if (window.MusicDownloader && activeManifest) {
+        window.MusicDownloader.startBackgroundDownload(activeManifest);
+      }
+
+      // 4. Сравнение версий
+      if (remoteManifest && remoteManifest.version && localManifest && localManifest.version) {
+        const currentVersion = String(localManifest.version).trim();
+        const targetVersion = String(remoteManifest.version).trim();
+
+        if (targetVersion && targetVersion !== currentVersion) {
+          OtaDiagnostics.updateNeeded = `YES (${currentVersion}->${targetVersion})`;
+          await this.processBundleUpdate(remoteManifest);
+        } else {
+          OtaDiagnostics.updateNeeded = `NO (On ${currentVersion})`;
+          OtaDiagnostics.step = 'UP_TO_DATE';
+          logOta(`Up to date (${currentVersion})`);
+        }
+      }
+    },
+
+    processBundleUpdate: async function (manifest) {
+      const Filesystem = getPlugin('Filesystem');
+      const downloadUrl = manifest.bundleUrl;
+      const version = String(manifest.version).trim();
+      const isCritical = !!manifest.critical;
+
+      // T1: Проверка ссылки через fetch
+      OtaDiagnostics.step = 'T1_FETCH_CHECK';
+      try {
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 7000);
+        const res = await fetch(downloadUrl, { method: 'GET', signal: ctrl.signal, cache: 'no-store' });
+        clearTimeout(tid);
+        const len = res.headers.get('content-length') || '?';
+        if (res.body && res.body.cancel) { try { await res.body.cancel(); } catch (e) {} }
+        if (!res.ok) {
+          OtaDiagnostics.triageT1Fetch = `FAIL (HTTP ${res.status})`;
+          OtaDiagnostics.lastError = `T1 HTTP ${res.status}`;
+          return;
+        }
+        OtaDiagnostics.triageT1Fetch = `PASS (${res.status}, ${Math.round(Number(len)/1024 || 0)}KB)`;
+      } catch (e1) {
+        OtaDiagnostics.triageT1Fetch = `FAIL (${formatErr(e1)})`;
+        OtaDiagnostics.lastError = 'T1: ' + formatErr(e1);
+        return;
+      }
+
+      // T2: Скачивание на диск через Filesystem
+      OtaDiagnostics.step = 'T2_FS_DOWNLOAD';
+      if (!Filesystem) {
+        OtaDiagnostics.triageT2FsDl = 'NO_FS_PLUGIN';
+        return;
+      }
+      OtaDiagnostics.triageT2FsDl = 'DOWNLOADING...';
+      try {
+        await Filesystem.downloadFile({
+          url: downloadUrl,
+          path: ZIP_FILENAME,
+          directory: 'DATA'
+        });
+        const statRes = await Filesystem.stat({ path: ZIP_FILENAME, directory: 'DATA' });
+        const sizeKb = statRes && statRes.size ? Math.round(statRes.size / 1024) : '?';
+        OtaDiagnostics.triageT2FsDl = `PASS (${sizeKb}KB saved)`;
+        OtaDiagnostics.downloadProgress = 100;
+        logOta(`T2 saved ${sizeKb}KB`);
+      } catch (e2) {
+        OtaDiagnostics.triageT2FsDl = `FAIL (${formatErr(e2)})`;
+        OtaDiagnostics.lastError = 'T2: ' + formatErr(e2);
+        return;
+      }
+
+      // T3: Распаковка через наш NativeOtaBridge в MainActivity
+      OtaDiagnostics.step = 'T3_NATIVE_UNPACK';
+      if (window.NativeOtaBridge && typeof window.NativeOtaBridge.unpackAndStage === 'function') {
+        OtaDiagnostics.triageT3LocalUpd = 'UNPACKING...';
+        try {
+          const result = window.NativeOtaBridge.unpackAndStage(ZIP_FILENAME, version, isCritical);
+          logOta('Unpack result: ' + result);
+          if (result && result.startsWith('OK_')) {
+            OtaDiagnostics.triageT3LocalUpd = `PASS (${result})`;
+            OtaDiagnostics.nextQueueStatus = isCritical ? 'APPLIED_NOW' : `READY (v${version} on restart)`;
+            OtaDiagnostics.step = 'READY_TO_APPLY';
+            refreshNativeBridgeStatus();
+          } else {
+            OtaDiagnostics.triageT3LocalUpd = `FAIL (${result})`;
+            OtaDiagnostics.lastError = result;
+            OtaDiagnostics.step = 'UNPACK_ERR';
+          }
+        } catch (e3) {
+          OtaDiagnostics.triageT3LocalUpd = `FAIL (${formatErr(e3)})`;
+          OtaDiagnostics.lastError = 'T3: ' + formatErr(e3);
+        }
+      } else {
+        OtaDiagnostics.triageT3LocalUpd = 'FAIL (No NativeOtaBridge in APK)';
+        OtaDiagnostics.lastError = 'Need to install new APK from Build Android APK!';
+      }
+    },
+
+    forceApplyNow: async function () {
+      if (window.NativeOtaBridge && typeof window.NativeOtaBridge.applyPendingNow === 'function') {
+        const res = window.NativeOtaBridge.applyPendingNow();
+        logOta('ApplyNow: ' + res);
+        if (!res.startsWith('OK_')) {
+          OtaDiagnostics.lastError = res;
+        }
+      } else {
+        OtaDiagnostics.lastError = 'No NativeOtaBridge in APK';
+      }
+    }
+  };
+
+  window.AppUpdater = AppUpdater;
+})();

@@ -1,0 +1,103 @@
+name: Release Prod OTA Update
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'www/**'
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: 1.0.${{ github.run_number }}
+
+    steps:
+      - name: 📥 Получение кода ветки main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: 🟢 Настройка Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 📦 Установка утилит минификации и обфускации
+        run: |
+          npm install -g terser javascript-obfuscator
+
+      - name: 🛠️ Подготовка продакшен-бандла (Минификация + Обфускация)
+        run: |
+          # Создаем временную папку для подготовки чистого продакшен-кода
+          rm -rf /tmp/prod_bundle
+          cp -r www /tmp/prod_bundle
+
+          cd /tmp/prod_bundle
+
+          # 1. Проставляем версию
+          jq --arg v "$VERSION" '.version = $v' update_manifest.json > tmp.json && mv tmp.json update_manifest.json
+
+          # 2. Обфусцируем файлы симуляции (только логика)
+          for f in data.js levels_data.js engine.js; do
+            if [ -f "$f" ]; then
+              javascript-obfuscator "$f" --output "$f" --compact true --control-flow-flattening false --dead-code-injection false
+            fi
+          done
+
+          # 3. Минифицируем все JS через Terser
+          for f in *.js; do
+            if [ -f "$f" ]; then
+              terser "$f" -c -m -o "$f"
+            fi
+          done
+
+      - name: 🗜️ Архивация папки www в bundle.zip
+        run: |
+          rm -f bundle.zip
+          cd /tmp/prod_bundle
+          zip -r ../bundle.zip ./*
+          mv ../bundle.zip $GITHUB_WORKSPACE/bundle.zip
+
+      - name: 📦 Публикация bundle.zip в ветку ota-bundles
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git checkout -B ota-bundles
+          git add -f bundle.zip
+          git commit -m "chore(ota): prod bundle v${VERSION} [skip ci]"
+          git push -f origin ota-bundles
+
+          BUNDLE_SHA=$(git rev-parse HEAD)
+          RAW_URL="https://raw.githubusercontent.com/${{ github.repository }}/${BUNDLE_SHA}/bundle.zip"
+          echo "RAW_URL=$RAW_URL" >> $GITHUB_ENV
+          echo "✅ Прямая ссылка на прод-архив: $RAW_URL"
+
+      - name: 🚀 Создание GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: Prod OTA Update v${{ env.VERSION }}
+          files: bundle.zip
+          draft: false
+          prerelease: false
+
+      - name: 💾 Обновление update_manifest.json в ветке main
+        run: |
+          git fetch origin main
+          git checkout -f main
+          git reset --hard origin/main
+
+          cd www
+          jq --arg v "$VERSION" --arg url "$RAW_URL" '.version = $v | .bundleUrl = $url' update_manifest.json > tmp.json && mv tmp.json update_manifest.json
+          cd ..
+
+          git add www/update_manifest.json
+          git commit -m "chore(ota): update prod manifest to v${VERSION} [skip ci]" || echo "No changes"
+          git push origin main

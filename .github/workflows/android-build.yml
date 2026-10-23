@@ -1,9 +1,7 @@
 name: Build Android APK
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   build:
@@ -17,7 +15,7 @@ jobs:
       - name: 🟢 Настройка Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '22'
 
       - name: ☕ Настройка Java (JDK 21)
         uses: actions/setup-java@v4
@@ -31,11 +29,289 @@ jobs:
       - name: 🔄 Синхронизация Capacitor
         run: npx cap sync android
 
+      - name: 🔧 Внедрение NativeOtaBridge в MainActivity.java
+        run: |
+          python3 - << 'EOF'
+          import glob
+
+          matches = glob.glob("android/app/src/main/java/**/MainActivity.java", recursive=True)
+          if not matches:
+              raise RuntimeError("MainActivity.java not found!")
+
+          main_path = matches[0]
+          with open(main_path, "r", encoding="utf-8") as f:
+              code = f.read()
+
+          pkg_line = [l for l in code.splitlines() if l.strip().startswith("package ")][0]
+
+          new_main = f"""{pkg_line}
+
+          import android.content.Context;
+          import android.content.SharedPreferences;
+          import android.content.pm.PackageInfo;
+          import android.os.Bundle;
+          import android.webkit.JavascriptInterface;
+          import com.getcapacitor.BridgeActivity;
+          import java.io.BufferedInputStream;
+          import java.io.File;
+          import java.io.FileInputStream;
+          import java.io.FileOutputStream;
+          import java.util.zip.ZipEntry;
+          import java.util.zip.ZipInputStream;
+          import org.json.JSONObject;
+
+          public class MainActivity extends BridgeActivity {{
+              private static final String PREFS_NAME = "SynthWaveNativeOtaPrefs";
+              private static final String KEY_ACTIVE_PATH = "active_ota_path";
+              private static final String KEY_ACTIVE_VER = "active_ota_version";
+              private static final String KEY_PENDING_PATH = "pending_ota_path";
+              private static final String KEY_PENDING_VER = "pending_ota_version";
+              private static final String KEY_APK_TIME = "last_apk_update_time";
+              private static final String KEY_BOOT_LOG = "last_boot_ota_log";
+
+              @Override
+              public void onCreate(Bundle savedInstanceState) {{
+                  super.onCreate(savedInstanceState);
+                  try {{
+                      if (this.bridge != null && this.bridge.getWebView() != null) {{
+                          this.bridge.getWebView().addJavascriptInterface(new NativeOtaBridge(this), "NativeOtaBridge");
+                      }}
+                      checkAndApplyStartupOta();
+                  }} catch (Exception e) {{
+                      e.printStackTrace();
+                  }}
+              }}
+
+              private void checkAndApplyStartupOta() {{
+                  SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+                  StringBuilder bootLog = new StringBuilder();
+                  long curApkTime = 0;
+                  try {{
+                      PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+                      curApkTime = pInfo.lastUpdateTime;
+                  }} catch (Exception ignored) {{}}
+
+                  long savedApkTime = prefs.getLong(KEY_APK_TIME, 0);
+                  if (curApkTime != 0 && savedApkTime != curApkTime) {{
+                      prefs.edit()
+                          .putLong(KEY_APK_TIME, curApkTime)
+                          .remove(KEY_ACTIVE_PATH)
+                          .remove(KEY_ACTIVE_VER)
+                          .remove(KEY_PENDING_PATH)
+                          .remove(KEY_PENDING_VER)
+                          .putString(KEY_BOOT_LOG, "Fresh APK install detected, reset OTA")
+                          .apply();
+                      return;
+                  }}
+
+                  String pendingPath = prefs.getString(KEY_PENDING_PATH, null);
+                  String pendingVer = prefs.getString(KEY_PENDING_VER, null);
+                  if (pendingPath != null) {{
+                      File pIdx = new File(pendingPath, "index.html");
+                      if (pIdx.exists()) {{
+                          prefs.edit()
+                              .putString(KEY_ACTIVE_PATH, pendingPath)
+                              .putString(KEY_ACTIVE_VER, pendingVer != null ? pendingVer : "ota")
+                              .remove(KEY_PENDING_PATH)
+                              .remove(KEY_PENDING_VER)
+                              .apply();
+                          bootLog.append("Promoted pending v").append(pendingVer).append("; ");
+                      }} else {{
+                          bootLog.append("Pending index.html missing; ");
+                      }}
+                  }}
+
+                  String activePath = prefs.getString(KEY_ACTIVE_PATH, null);
+                  String activeVer = prefs.getString(KEY_ACTIVE_VER, "builtin");
+                  if (activePath != null) {{
+                      File indexFile = new File(activePath, "index.html");
+                      if (indexFile.exists() && this.bridge != null) {{
+                          this.bridge.setServerBasePath(activePath);
+                          bootLog.append("Loaded OTA v").append(activeVer);
+                      }} else {{
+                          bootLog.append("Active index missing at ").append(activePath);
+                      }}
+                  }} else {{
+                      bootLog.append("Running builtin APK assets");
+                  }}
+                  prefs.edit().putString(KEY_BOOT_LOG, bootLog.toString()).apply();
+              }}
+
+              public class NativeOtaBridge {{
+                  private final Context ctx;
+                  public NativeOtaBridge(Context c) {{ this.ctx = c; }}
+
+                  @JavascriptInterface
+                  public String getStatusJson() {{
+                      try {{
+                          SharedPreferences prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+                          JSONObject obj = new JSONObject();
+                          obj.put("activeVersion", prefs.getString(KEY_ACTIVE_VER, "builtin"));
+                          obj.put("activePath", prefs.getString(KEY_ACTIVE_PATH, "builtin"));
+                          obj.put("pendingVersion", prefs.getString(KEY_PENDING_VER, "none"));
+                          obj.put("bootLog", prefs.getString(KEY_BOOT_LOG, "none"));
+                          obj.put("currentServerPath", MainActivity.this.bridge != null ? MainActivity.this.bridge.getServerBasePath() : "null");
+                          return obj.toString();
+                      }} catch (Exception e) {{
+                          return "{{\\"error\\":\\"" + e.getMessage() + "\\"}}";
+                      }}
+                  }}
+
+                  @JavascriptInterface
+                  public String unpackAndStage(String zipFileName, String version, boolean applyImmediately) {{
+                      try {{
+                          File zipFile = new File(ctx.getFilesDir(), zipFileName);
+                          if (!zipFile.exists()) {{
+                              return "ERR: Zip missing at " + zipFile.getAbsolutePath();
+                          }}
+                          long zipLen = zipFile.length();
+                          if (zipLen < 1000) {{
+                              return "ERR: Zip too small (" + zipLen + "B)";
+                          }}
+
+                          File destDir = new File(ctx.getFilesDir(), "ota_bundles/v_" + version.replaceAll("[^a-zA-Z0-9._-]", "_"));
+                          if (destDir.exists()) {{
+                              deleteRecursive(destDir);
+                          }}
+                          destDir.mkdirs();
+
+                          int fileCount = 0;
+                          byte[] buffer = new byte[8192];
+                          try (ZipInputStream zis = new ZipInputStream(new BufferedInputStream(new FileInputStream(zipFile)))) {{
+                              ZipEntry ze;
+                              while ((ze = zis.getNextEntry()) != null) {{
+                                  File outFile = new File(destDir, ze.getName());
+                                  String canonicalDest = destDir.getCanonicalPath();
+                                  String canonicalOut = outFile.getCanonicalPath();
+                                  if (!canonicalOut.startsWith(canonicalDest + File.separator)) {{
+                                      continue;
+                                  }}
+                                  if (ze.isDirectory()) {{
+                                      outFile.mkdirs();
+                                  }} else {{
+                                      File parent = outFile.getParentFile();
+                                      if (parent != null && !parent.exists()) parent.mkdirs();
+                                      try (FileOutputStream fos = new FileOutputStream(outFile)) {{
+                                          int count;
+                                          while ((count = zis.read(buffer)) != -1) {{
+                                              fos.write(buffer, 0, count);
+                                          }}
+                                      }}
+                                      fileCount++;
+                                  }}
+                                  zis.closeEntry();
+                              }}
+                          }}
+
+                          File indexCheck = new File(destDir, "index.html");
+                          if (!indexCheck.exists()) {{
+                              return "ERR: Unzipped " + fileCount + " files, but index.html not in root";
+                          }}
+
+                          if (zipFile.exists()) {{
+                              zipFile.delete();
+                          }}
+
+                          SharedPreferences prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+                          String activePath = prefs.getString(KEY_ACTIVE_PATH, null);
+                          File bundlesDir = new File(ctx.getFilesDir(), "ota_bundles");
+                          if (bundlesDir.exists() && bundlesDir.isDirectory()) {{
+                              File[] files = bundlesDir.listFiles();
+                              if (files != null) {{
+                                  for (File f : files) {{
+                                      if (f.isDirectory()) {{
+                                          boolean isDest = f.getAbsolutePath().equals(destDir.getAbsolutePath());
+                                          boolean isActive = activePath != null && f.getAbsolutePath().equals(new File(activePath).getAbsolutePath());
+                                          if (!isDest && !isActive) {{
+                                              deleteRecursive(f);
+                                          }}
+                                      }}
+                                  }}
+                              }}
+                          }}
+
+                          String finalPath = destDir.getAbsolutePath();
+
+                          if (applyImmediately) {{
+                              prefs.edit()
+                                  .putString(KEY_ACTIVE_PATH, finalPath)
+                                  .putString(KEY_ACTIVE_VER, version)
+                                  .remove(KEY_PENDING_PATH)
+                                  .remove(KEY_PENDING_VER)
+                                  .putString(KEY_BOOT_LOG, "Applied immediately v" + version)
+                                  .apply();
+                              runOnUiThread(() -> {{
+                                  if (MainActivity.this.bridge != null) {{
+                                      MainActivity.this.bridge.setServerBasePath(finalPath);
+                                  }}
+                              }});
+                              return "OK_APPLIED:" + fileCount + "_files";
+                          }} else {{
+                              prefs.edit()
+                                  .putString(KEY_PENDING_PATH, finalPath)
+                                  .putString(KEY_PENDING_VER, version)
+                                  .apply();
+                              return "OK_STAGED:" + fileCount + "_files";
+                          }}
+                      }} catch (Exception e) {{
+                          return "ERR_JAVA:" + e.getClass().getSimpleName() + ": " + e.getMessage();
+                      }}
+                  }}
+
+                  @JavascriptInterface
+                  public String applyPendingNow() {{
+                      try {{
+                          SharedPreferences prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+                          String pendingPath = prefs.getString(KEY_PENDING_PATH, null);
+                          String pendingVer = prefs.getString(KEY_PENDING_VER, null);
+                          if (pendingPath == null) {{
+                              pendingPath = prefs.getString(KEY_ACTIVE_PATH, null);
+                              pendingVer = prefs.getString(KEY_ACTIVE_VER, null);
+                          }}
+                          if (pendingPath == null || !new File(pendingPath, "index.html").exists()) {{
+                              return "ERR: No staged bundle on disk";
+                          }}
+                          final String pathToApply = pendingPath;
+                          prefs.edit()
+                              .putString(KEY_ACTIVE_PATH, pathToApply)
+                              .putString(KEY_ACTIVE_VER, pendingVer != null ? pendingVer : "ota")
+                              .remove(KEY_PENDING_PATH)
+                              .remove(KEY_PENDING_VER)
+                              .putString(KEY_BOOT_LOG, "Force applied v" + pendingVer)
+                              .apply();
+                          runOnUiThread(() -> {{
+                              if (MainActivity.this.bridge != null) {{
+                                  MainActivity.this.bridge.setServerBasePath(pathToApply);
+                              }}
+                          }});
+                          return "OK_APPLIED:v" + pendingVer;
+                      }} catch (Exception e) {{
+                          return "ERR_APPLY:" + e.getMessage();
+                      }}
+                  }}
+
+                  private void deleteRecursive(File f) {{
+                      if (f.isDirectory()) {{
+                          File[] children = f.listFiles();
+                          if (children != null) {{
+                              for (File c : children) deleteRecursive(c);
+                          }}
+                      }}
+                      f.delete();
+                  }}
+              }}
+          }}
+          """
+          with open(main_path, "w", encoding="utf-8") as f:
+              f.write(new_main)
+          print(f"✅ Injected NativeOtaBridge into {main_path}")
+          EOF
+
       - name: 🔨 Сборка APK (Debug)
         working-directory: ./android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --no-daemon
 
       - name: 📤 Загрузка готового APK
         uses: actions/upload-artifact@v4

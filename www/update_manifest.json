@@ -1,0 +1,86 @@
+{
+  "version": "1.0.54",
+  "bundleUrl": "https://raw.githubusercontent.com/synth-wave-defense/synth-wave-defense.github.io/76c1b3f7f611fda9eab22c7534e7fcf77ec4eda9/bundle.zip",
+  "music": [
+    {
+      "id": "menu_01",
+      "filename": "menu_01.ogg",
+      "bundled": true
+    },
+    {
+      "id": "win",
+      "filename": "win.ogg",
+      "bundled": true
+    },
+    {
+      "id": "lose",
+      "filename": "lose.ogg",
+      "bundled": true
+    },
+    {
+      "id": "battle_01",
+      "filename": "battle_01.ogg",
+      "bundled": true
+    },
+    {
+      "id": "menu_02",
+      "filename": "menu_02.ogg",
+      "bundled": false,
+      "url": "https://github.com/synth-wave-defense/synth-wave-defense.github.io/releases/download/assets-music/menu_02.ogg"
+    },
+    {
+      "id": "battle_02",
+      "filename": "battle_02.ogg",
+      "bundled": false,
+      "url": "https://github.com/synth-wave-defense/synth-wave-defense.github.io/releases/download/assets-music/battle_02.ogg"
+    },
+    {
+      "id": "battle_03",
+      "filename": "battle_03.ogg",
+      "bundled": false,
+      "url": "https://github.com/synth-wave-defense/synth-wave-defense.github.io/releases/download/assets-music/battle_03.ogg"
+    },
+    {
+      "id": "battle_04",
+      "filename": "battle_04.ogg",
+      "bundled": false,
+      "url": "https://github.com/synth-wave-defense/synth-wave-defense.github.io/releases/download/assets-music/battle_04.ogg"
+    },
+    {
+      "id": "battle_05",
+      "filename": "battle_05.ogg",
+      "bundled": false,
+      "url": "https://github.com/synth-wave-defense/synth-wave-defense.github.io/releases/download/assets-music/battle_05.ogg"
+    },
+    {
+      "id": "battle_06",
+      "filename": "battle_06.ogg",
+      "bundled": false,
+      "url": "https://github.com/synth-wave-defense/synth-wave-defense.github.io/releases/download/assets-music/battle_06.ogg"
+    },
+    {
+      "id": "battle_07",
+      "filename": "battle_07.ogg",
+      "bundled": false,
+      "url": "https://github.com/synth-wave-defense/synth-wave-defense.github.io/releases/download/assets-music/battle_07.ogg"
+    },
+    {
+      "id": "battle_08",
+      "filename": "battle_08.ogg",
+      "bundled": false,
+      "url": "https://github.com/synth-wave-defense/synth-wave-defense.github.io/releases/download/assets-music/battle_08.ogg"
+    },
+    {
+      "id": "battle_09",
+      "filename": "battle_09.ogg",
+      "bundled": false,
+      "url": "https://github.com/synth-wave-defense/synth-wave-defense.github.io/releases/download/assets-music/battle_09.ogg"
+    },
+    {
+      "id": "battle_10",
+      "filename": "battle_10.ogg",
+      "bundled": false,
+      "url": "https://github.com/synth-wave-defense/synth-wave-defense.github.io/releases/download/assets-music/battle_10.ogg"
+    }
+  ]
+}

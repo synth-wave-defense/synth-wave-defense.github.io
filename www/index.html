@@ -1,4 +1,4 @@
-<!-- [HTM100] Version: 1.36.19 - Synth Wave Defense HTML application layout and script bindings. -->
+<!-- [HTM100] Version: 1.36.37 - Synth Wave Defense HTML application layout and script bindings. -->
 <!DOCTYPE html>
 
 <html lang="en">
@@ -6,8 +6,8 @@
   <meta charset="UTF-8">
   <script>
     // [HTM101] Environment Check: dynamically loads dev_gate.js if running in dev environment or localhost.
-    const isDevHost = window.location.hostname.includes('dev-synth-wave-defense') ||
-                    window.location.hostname === 'localhost' ||
+    const isDevHost = window.location.hostname.includes('dev-synth-wave-defense') || 
+                    window.location.hostname === 'localhost' || 
                     window.location.protocol === 'file:';
 
   if (isDevHost && window.location.hostname !== 'synth-wave-defense.github.io') {
@@ -18,25 +18,70 @@
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Synth Wave Defense</title>
-  <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16.png">
+  <link rel="icon" href="./favicon.ico">
   <link rel="stylesheet" href="fonts.css">
   <link rel="stylesheet" href="styles.css">
-  <link rel="manifest" href="./manifest.json">
 </head>
 
-<!-- [HTM110] Show errors of game -->
-<script>
-  window.onerror = function(message, source, lineno, colno, error) {
-    const errDiv = document.createElement('div');
-    errDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);color:#ff2a6d;z-index:9999;padding:20px;font-size:16px;overflow:auto;word-wrap:break-word;';
-    errDiv.innerHTML = `<b>ОШИБКА ЗАПУСКА:</b><br><br>${message}<br><br>Файл: ${source}<br>Строка: ${lineno}`;
-    document.body.appendChild(errDiv);
-    return false;
-  };
-</script>
-
 <body>
+
+<!-- Полноэкранный загрузочный экран с неоновым прогресс-баром -->
+  <div id="initialLoadingScreen" style="
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    z-index: 999999;
+    background: #03050d;
+    transition: opacity 0.35s ease-out;
+    pointer-events: all;
+  ">
+    <div style="
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      width: min(240px, 75vw);
+    ">
+      <div style="
+        font-family: 'Orbitron', 'Rajdhani', 'Montserrat', sans-serif;
+        font-size: clamp(17px, 4vw, 22px);
+        font-weight: 800;
+        letter-spacing: 0.28em;
+        color: #00e5ff;
+        text-shadow: 0 0 16px rgba(0, 229, 255, 0.75), 0 0 32px rgba(168, 85, 247, 0.45);
+        white-space: nowrap;
+      ">LOADING...</div>
+
+      <!-- Контейнер шкалы прогресса -->
+      <div style="
+        width: 100%;
+        height: 6px;
+        background: rgba(14, 22, 42, 0.85);
+        border: 1px solid rgba(0, 229, 255, 0.35);
+        border-radius: 6px;
+        padding: 1px;
+        box-shadow: 0 0 10px rgba(0, 229, 255, 0.15);
+        box-sizing: border-box;
+        overflow: hidden;
+      ">
+        <div id="initialProgressBarFill" style="
+          width: 0%;
+          height: 100%;
+          background: linear-gradient(90deg, #00e5ff 0%, #a855f7 70%, #f05f9f 100%);
+          border-radius: 4px;
+          box-shadow: 0 0 10px #00e5ff, 0 0 16px rgba(240, 95, 159, 0.6);
+          transition: width 0.18s ease-out;
+        "></div>
+      </div>
+    </div>
+  </div>
 
 <!-- [HTM102] Audio Onboarding Screen: Headphones recommendation and audio gate modal overlay. -->
 <div class="loading-screen" id="loadingScreen">
@@ -134,7 +179,9 @@
 <script src="telemetry.js"></script>
 <script src="sfx-manifest.js"></script>
 <script src="audio.js"></script>
+<script src="music_downloader.js"></script>
 <script src="music.js"></script>
+<script src="updater.js"></script>
 
 <canvas id="gameCanvas"></canvas>
 
@@ -150,6 +197,17 @@
         </svg>
       </div>
       <span class="stat-val-text" id="globalDiamondsVal">10</span>
+    </div>
+
+    <div class="badge-half" id="hudPrismBadge" onclick="handleDevPrismClick()">
+      <div class="hud-icon" style="filter: drop-shadow(0 0 7px rgba(217,70,239,.85));">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#d946ef" stroke-width="2.2" stroke-linejoin="round">
+          <polygon points="12 2 21 12 12 22 3 12" fill="rgba(217,70,239,.25)"/>
+          <polyline points="3 12 12 15 21 12"/>
+          <line x1="12" y1="2" x2="12" y2="22"/>
+        </svg>
+      </div>
+      <span class="stat-val-text" id="globalPrismsVal">0</span>
     </div>
 
     <div class="hud-capsule-extra hidden" id="econHpSplitBadge">
@@ -192,14 +250,26 @@
         <select id="devWaveSelect" class="hud-select-dropdown hidden" onchange="devJumpToWave(parseInt(this.value, 10))"></select>
       </div>
     </div>
-    <button class="hud-gear-btn" id="hudSettingsBtn" onclick="handleHudSettingsClick()" title="Settings & Pause">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="hud-gear-svg">
-        <circle cx="12" cy="12" r="3.2"></circle>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-      </svg>
-    </button>
+    <div class="hud-corner-utilities">
+      <button class="hud-gear-btn" id="hudSettingsBtn" onclick="handleHudSettingsClick()" title="Settings & Pause">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="hud-gear-svg">
+          <circle cx="12" cy="12" r="3.2"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </button>
+    </div>
   </div>
 </div>
+
+<button class="daily-bonus-quick-btn hidden" id="dailyBonusQuickBtn" onclick="openDailyLoginModal()" title="Daily Bonus">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="daily-btn-svg">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+    <line x1="16" y1="2" x2="16" y2="6"/>
+    <line x1="8" y1="2" x2="8" y2="6"/>
+    <line x1="3" y1="10" x2="21" y2="10"/>
+  </svg>
+  <span class="scout-notification-dot hidden" id="dailyBonusBadgeDot"></span>
+</button>
 
 <div class="incoming-alert-banner" id="incomingAlertBanner">
   <span class="incoming-alert-text" id="incomingAlertText">Boss Incoming</span>
@@ -318,30 +388,9 @@
 </div>
 
 <!-- [HTM106] Developer Tools Overlay: Developer bar with game speed, custom enemy spawner, and save tools. -->
-<label class="dev-mode-toggle" id="devModeToggle">
-  <input type="checkbox" id="devModeCheckbox" onchange="toggleDevMode(this.checked)">
-  <span>DEV MODE</span>
-</label>
-
-<select id="speedContainerFloating" class="dev-speed-floating hidden" onchange="setGameSpeed(parseFloat(this.value))">
-  <option value="0.5">0.5x</option>
-  <option value="0.75">0.75x</option>
-  <option value="0.9">0.9x</option>
-  <option value="1" selected>1x</option>
-  <option value="1.25">1.25x</option>
-  <option value="1.5">1.5x</option>
-  <option value="2">2x</option>
-  <option value="4">4x</option>
-  <option value="8">8x</option>
-</select>
-
-<button class="dev-clearsave-floating hidden" id="devClearSaveBtnFloating" onclick="handleClearSaveClick()" title="Wipe localStorage and reset all progress to a fresh install">
-  <span>🗑 Clear Save</span>
-</button>
-
-<div class="dev-bar hidden" id="devBar">
-  <div class="dev-bar-top">
-    <div class="dev-fps-badge" id="devFpsBadge">FPS: 60</div>
+<div class="dev-bar hidden" id="devBar" style="width: 210px; max-width: 92vw; box-sizing: border-box;">
+  <div class="dev-bar-top" style="display:flex; align-items:center; justify-content:space-between; gap:3px;">
+    <div class="dev-fps-badge" id="devFpsBadge" style="font-size:11px; min-width:48px;">FPS: 60</div>
 
     <button type="button" class="dev-icon-btn dev-speed-step-btn" onclick="stepDevSpeed(-1)" title="Decrease speed">−</button>
 
@@ -363,53 +412,193 @@
     <button type="button" class="dev-icon-btn dev-close-btn" onclick="closeDevMode()" title="Close Dev Mode">✕</button>
   </div>
 
-  <div class="dev-details-pane hidden" id="devDetailsPane">
-    <div class="dev-actions-row">
-      <button type="button" class="dev-btn" id="livePauseBtn" onclick="toggleLivePause()">PAUSE GAME</button>
-      <button type="button" class="dev-btn dev-danger-btn" id="devClearSaveBtn" onclick="handleClearSaveClick()">CLEAR SAVE</button>
-    </div>
+  <div class="dev-details-pane hidden" id="devDetailsPane" style="width:100%; box-sizing:border-box; overflow:hidden;">
+    
+    <!-- ================= 2 УРОВЕНЬ: GAME ================= -->
+    <div class="dev-spawner-sub" style="margin-top:4px;">
+      <div class="dev-sub-title" onclick="toggleDevSubSection('Game')" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; user-select:none; padding:3px 2px;">
+        <span>▸ GAME</span>
+        <span id="devSubArrowGame">▾</span>
+      </div>
+      <div id="devSubBodyGame" class="hidden" style="margin-top:4px;">
+        <div class="dev-actions-row" style="display:flex; flex-direction:column; gap:4px;">
+          <button type="button" class="dev-btn" id="livePauseBtn" onclick="toggleLivePause()" style="width:100%; font-size:10px; padding:4px;">PAUSE GAME</button>
+          <button type="button" class="dev-btn dev-danger-btn" id="devClearSaveBtn" onclick="handleClearSaveClick()" style="width:100%; font-size:10px; padding:4px;">CLEAR SAVE</button>
+        </div>
 
-    <div class="dev-spawner-sub" id="devTrackRow">
-      <div class="dev-sub-title">NOW PLAYING</div>
-      <div class="dev-track-info" id="devTrackTitle">None</div>
-    </div>
-
-    <div class="dev-spawner-sub" id="devAudioRow">
-      <div class="dev-sub-title">AUDIO MONITOR</div>
-      <pre id="devAudioLog" class="dev-audio-log"></pre>
-    </div>
-
-    <div class="dev-spawner-sub" id="devCustomSpawner">
-      <div class="dev-sub-title">SPAWNER</div>
-      <div class="dev-spawner-grid">
-        <select id="devSpawnType">
-          <option value="grunt">Grunt</option>
-          <option value="scout">Scout</option>
-          <option value="tank">Tank</option>
-          <option value="swarm">Swarm</option>
-          <option value="blinker">Blinker</option>
-          <option value="goliath">Goliath</option>
-          <option value="boss">Boss</option>
-        </select>
-        <input type="number" id="devSpawnCount" min="1" max="50" value="5" title="Count">
-        <button type="button" class="dev-btn" onclick="devSpawnCustomEnemies()">SPAWN</button>
+        <div class="dev-spawner-sub" id="devCustomSpawner" style="margin-top:6px;">
+          <div class="dev-sub-title" style="font-size:9px;">SPAWNER</div>
+          <div style="display:flex; flex-direction:column; gap:4px; margin-top:3px;">
+            <select id="devSpawnType" style="width:100%; font-size:11px; box-sizing:border-box;">
+              <option value="grunt">Grunt</option>
+              <option value="scout">Scout</option>
+              <option value="tank">Tank</option>
+              <option value="swarm">Swarm</option>
+              <option value="blinker">Blinker</option>
+              <option value="goliath">Goliath</option>
+              <option value="emp_bomber">EMP Bomber</option>
+              <option value="hive_empress">Boss: Hive</option>
+              <option value="chronos_warp">Boss: Chronos</option>
+              <option value="titan_core">Boss: Titan</option>
+              <option value="emp_overlord">Boss: Overlord</option>
+            </select>
+            <div style="display:flex; gap:4px;">
+              <input type="number" id="devSpawnCount" min="1" max="50" value="5" title="Count" style="width:55px; font-size:11px; box-sizing:border-box;">
+              <input type="hidden" id="devSpawnInterval" value="0.5">
+              <button type="button" class="dev-btn" onclick="devSpawnCustomEnemies()" style="flex:1; font-size:10px; padding:4px;">SPAWN</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
+
+    <!-- ================= 2 УРОВЕНЬ: AUDIO ================= -->
+    <div class="dev-spawner-sub" style="margin-top:4px;">
+      <div class="dev-sub-title" onclick="toggleDevSubSection('Audio')" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; user-select:none; padding:3px 2px;">
+        <span>▸ AUDIO</span>
+        <span id="devSubArrowAudio">▾</span>
+      </div>
+      <div id="devSubBodyAudio" class="hidden" style="margin-top:4px; display:flex; flex-direction:column; gap:3px;">
+        <div style="font-size:10px; color:#8ef3ff; word-break:break-all; padding:2px 0;">
+          <b>Track:</b> <span id="devTrackTitle" style="color:#fff;">None</span>
+        </div>
+
+        <!-- 3 уровень: Audio Hardware -->
+        <div style="border-top:1px solid rgba(0,229,255,0.15); padding-top:3px;">
+          <div onclick="toggleDevMetricGroup('AudioHw')" style="cursor:pointer; display:flex; justify-content:space-between; font-size:10px; color:#94a3b8; user-select:none;">
+            <span>• Hardware</span><span id="devMetricArrowAudioHw">▾</span>
+          </div>
+          <pre id="devAudioLogHw" class="dev-audio-log hidden" style="font-size:10px; line-height:1.35; margin:3px 0 0 0; white-space:pre-wrap; overflow-wrap:anywhere;"></pre>
+        </div>
+
+        <!-- 3 уровень: Audio DSP -->
+        <div style="border-top:1px solid rgba(0,229,255,0.15); padding-top:3px;">
+          <div onclick="toggleDevMetricGroup('AudioDsp')" style="cursor:pointer; display:flex; justify-content:space-between; font-size:10px; color:#94a3b8; user-select:none;">
+            <span>• DSP & Nodes</span><span id="devMetricArrowAudioDsp">▾</span>
+          </div>
+          <pre id="devAudioLogDsp" class="dev-audio-log hidden" style="font-size:10px; line-height:1.35; margin:3px 0 0 0; white-space:pre-wrap; overflow-wrap:anywhere;"></pre>
+        </div>
+
+        <!-- 3 уровень: Thread & Memory -->
+        <div style="border-top:1px solid rgba(0,229,255,0.15); padding-top:3px;">
+          <div onclick="toggleDevMetricGroup('AudioMem')" style="cursor:pointer; display:flex; justify-content:space-between; font-size:10px; color:#94a3b8; user-select:none;">
+            <span>• Thread & RAM</span><span id="devMetricArrowAudioMem">▾</span>
+          </div>
+          <pre id="devAudioLogMem" class="dev-audio-log hidden" style="font-size:10px; line-height:1.35; margin:3px 0 0 0; white-space:pre-wrap; overflow-wrap:anywhere;"></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 2 УРОВЕНЬ: VERSION & OTA ================= -->
+    <div class="dev-spawner-sub" style="margin-top:4px;">
+      <div class="dev-sub-title" onclick="toggleDevSubSection('Version')" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; user-select:none; padding:3px 2px;">
+        <span>▸ VERSION</span>
+        <span id="devSubArrowVersion">▾</span>
+      </div>
+      <div id="devSubBodyVersion" class="hidden" style="margin-top:4px; display:flex; flex-direction:column; gap:3px;">
+
+        <!-- 3 уровень: 1. Версии и Манифест (открыт по умолчанию внутри VERSION) -->
+        <div style="border-top:1px solid rgba(0,229,255,0.15); padding-top:3px;">
+          <div onclick="toggleDevMetricGroup('VerManifest')" style="cursor:pointer; display:flex; justify-content:space-between; font-size:10px; color:#8ef3ff; user-select:none;">
+            <span>• Manifest & Ver</span><span id="devMetricArrowVerManifest">▴</span>
+          </div>
+          <pre id="devVerLogManifest" class="dev-audio-log" style="font-size:10px; line-height:1.35; margin:3px 0 0 0; white-space:pre-wrap; overflow-wrap:anywhere;">Init...</pre>
+        </div>
+
+        <!-- 3 уровень: 2. Скачивание и Применение -->
+        <div style="border-top:1px solid rgba(0,229,255,0.15); padding-top:3px;">
+          <div onclick="toggleDevMetricGroup('VerDownload')" style="cursor:pointer; display:flex; justify-content:space-between; font-size:10px; color:#94a3b8; user-select:none;">
+            <span>• Download & Next</span><span id="devMetricArrowVerDownload">▾</span>
+          </div>
+          <pre id="devVerLogDownload" class="dev-audio-log hidden" style="font-size:10px; line-height:1.35; margin:3px 0 0 0; white-space:pre-wrap; overflow-wrap:anywhere;"></pre>
+        </div>
+
+        <!-- 3 уровень: 3. Состояние плагина и бандлов -->
+        <div style="border-top:1px solid rgba(0,229,255,0.15); padding-top:3px;">
+          <div onclick="toggleDevMetricGroup('VerPlugin')" style="cursor:pointer; display:flex; justify-content:space-between; font-size:10px; color:#94a3b8; user-select:none;">
+            <span>• Plugin & Storage</span><span id="devMetricArrowVerPlugin">▾</span>
+          </div>
+          <pre id="devVerLogPlugin" class="dev-audio-log hidden" style="font-size:10px; line-height:1.35; margin:3px 0 0 0; white-space:pre-wrap; overflow-wrap:anywhere;"></pre>
+        </div>
+
+        <!-- 3 уровень: 4. Логи шагов -->
+        <div style="border-top:1px solid rgba(0,229,255,0.15); padding-top:3px;">
+          <div onclick="toggleDevMetricGroup('VerLogs')" style="cursor:pointer; display:flex; justify-content:space-between; font-size:10px; color:#94a3b8; user-select:none;">
+            <span>• Step Logs</span><span id="devMetricArrowVerLogs">▾</span>
+          </div>
+          <pre id="devVerLogHistory" class="dev-audio-log hidden" style="font-size:9px; line-height:1.3; margin:3px 0 0 0; max-height:95px; overflow-y:auto; white-space:pre-wrap; overflow-wrap:anywhere;"></pre>
+        </div>
+
+        <div class="dev-actions-row" style="display:flex; gap:4px; margin-top:4px;">
+          <button type="button" class="dev-btn" onclick="window.AppUpdater && window.AppUpdater.init()" style="flex:1; font-size:9px; padding:4px 2px;">CHECK</button>
+          <button type="button" class="dev-btn" onclick="window.AppUpdater && window.AppUpdater.forceApplyNow()" style="flex:1; font-size:9px; padding:4px 2px;">APPLY NOW</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
 <!-- [HTM107] Navigation & Menu Overlays: Main menu, tech tree, shop, settings/pause, level selection, and match result screens. -->
 <div class="overlay-screen transparent-bg" id="startScreen">
   <div class="start-screen-container">
-    <div class="start-screen-top-zone seq-in" style="animation-delay:.18s;">
+    <<div class="start-screen-top-zone">
       <div class="start-sub-title">Synth Wave</div>
       <div class="start-main-title">Defense</div>
     </div>
 
     <div class="start-screen-buttons-zone">
-      <button class="menu-btn-primary-capsule seq-in" onclick="showLevelSelect()"><span>START</span></button>
-      <button class="menu-btn-glass-capsule seq-in" id="mainUpgradesBtn" onclick="showUpgradesScreen('main')"><span>TECH TREE</span></button>
-      <button class="menu-btn-glass-capsule seq-in" onclick="showShopScreen('start')"><span>GIFTS & SHOP</span></button>
+      <button class="menu-btn-primary-capsule seq-in" onclick="showLevelSelect()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex:none;">
+          <polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/>
+        </svg>
+        <span>PLAY</span>
+      </button>
+
+      <div class="synth-pass-widget seq-in" id="mainBattlePassBtn" onclick="showBattlePassScreen('start')">
+        <div class="synth-pass-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+        </div>
+        <div class="synth-pass-center">
+          <div class="synth-pass-title-row">
+            <span>SYNTH PASS</span>
+            <span class="synth-pass-tier-text" id="startBpTierText">TIER 1</span>
+          </div>
+          <div class="synth-pass-bar-bg">
+            <div class="synth-pass-bar-fill" id="startBpProgressFill"></div>
+          </div>
+        </div>
+        <div class="synth-pass-arrow">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </div>
+        <span class="scout-notification-dot hidden" id="startBpBadgeDot"></span>
+      </div>
+
+      <button class="menu-btn-glass-capsule seq-in" id="mainUpgradesBtn" onclick="showUpgradesScreen('main')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex:none;">
+          <path d="M12 21 v-5 l-4 -3.5 v-4 m4 7.5 l4 -3.5 v-4 m-4 7.5 v-8" />
+          <circle cx="12" cy="21" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="8" cy="8.5" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="16" cy="8.5" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="12" cy="5" r="1.5" fill="currentColor" stroke="none" />
+        </svg>
+        <span>TECH TREE</span>
+      </button>
+
+      <button class="menu-btn-glass-capsule seq-in" id="mainShopBtn" onclick="showShopScreen('start')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex:none;">
+          <rect x="3" y="8" width="18" height="13" rx="2"/>
+          <path d="M12 8v13"/>
+          <path d="M19 12H5"/>
+          <path d="M7.5 8C6 8 5 6.8 5 5.5 5 4.1 6.3 3 7.5 4.5 9 6.5 12 8 12 8s3-1.5 4.5-3.5C17.7 3 19 4.1 19 5.5 19 6.8 18 8 16.5 8"/>
+        </svg>
+        <span>GIFTS & SHOP</span>
+        <span class="scout-notification-dot hidden" id="shopBadgeDot"></span>
+      </button>
     </div>
   </div>
 </div>
@@ -417,29 +606,55 @@
 <div class="overlay-screen transparent-bg upgrades-bg hidden" id="upgradesScreen">
   <div class="upgrades-content-col">
     <div class="upgrades-top-bar">
-      <div class="levels-top-diamonds">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" stroke-linejoin="round">
-          <polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)"/>
-          <polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/>
-        </svg>
-        <span id="upgradesDiamondVal">0</span>
+      <div class="levels-top-resources">
+        <div class="levels-top-diamonds">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" stroke-linejoin="round">
+            <polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)"/>
+            <polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/>
+          </svg>
+          <span id="upgradesDiamondVal">0</span>
+        </div>
+        <div class="levels-top-prisms">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#d946ef" stroke-width="2.2" stroke-linejoin="round">
+            <polygon points="12 2 21 12 12 22 3 12" fill="rgba(217,70,239,.25)"/>
+            <polyline points="3 12 12 15 21 12"/>
+            <line x1="12" y1="2" x2="12" y2="22"/>
+          </svg>
+          <span id="upgradesPrismVal">0</span>
+        </div>
       </div>
       <span class="upgrades-top-label">TECH TREE</span>
     </div>
     <div class="upgrades-row-list" id="upgradesTreeBody"></div>
-    <button class="menu-btn-glass-capsule upgrades-back-btn" onclick="closeUpgradesScreen()"><span>BACK</span></button>
+    <button class="menu-btn-glass-capsule upgrades-back-btn" onclick="closeUpgradesScreen()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      <span>TO MAIN MENU</span>
+    </button>
   </div>
 </div>
 
 <div class="overlay-screen transparent-bg upgrades-bg hidden" id="shopScreen">
   <div class="upgrades-content-col">
     <div class="upgrades-top-bar">
-      <div class="levels-top-diamonds">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" stroke-linejoin="round">
-          <polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)"/>
-          <polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/>
-        </svg>
-        <span id="shopDiamondVal">0</span>
+      <div class="levels-top-resources">
+        <div class="levels-top-diamonds">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" stroke-linejoin="round">
+            <polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)"/>
+            <polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/>
+          </svg>
+          <span id="shopDiamondVal">0</span>
+        </div>
+        <div class="levels-top-prisms">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#d946ef" stroke-width="2.2" stroke-linejoin="round">
+            <polygon points="12 2 21 12 12 22 3 12" fill="rgba(217,70,239,.25)"/>
+            <polyline points="3 12 12 15 21 12"/>
+            <line x1="12" y1="2" x2="12" y2="22"/>
+          </svg>
+          <span id="shopPrismVal">0</span>
+        </div>
       </div>
       <span class="upgrades-top-label">GIFTS & SHOP</span>
     </div>
@@ -455,7 +670,7 @@
             </svg>
           </div>
           <div class="shop-card-info">
-            <span class="shop-card-title">+5 Diamonds</span>
+            <span class="shop-card-title" id="dailyGiftTitleText">+10 Diamonds</span>
             <span class="shop-card-sub" id="dailyGiftSubText">Claimed today: 0/3 packs</span>
           </div>
         </div>
@@ -520,39 +735,84 @@
         </button>
       </div>
 
+      <div class="upgrades-row-group-label">Currency Exchange</div>
+
+      <div class="shop-card">
+        <div class="shop-card-left">
+          <div class="shop-card-icon prism-glow">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d946ef" stroke-width="2.2" stroke-linejoin="round">
+              <polygon points="12 2 21 12 12 22 3 12" fill="rgba(217,70,239,.3)"/>
+              <polyline points="3 12 12 15 21 12"/>
+              <line x1="12" y1="2" x2="12" y2="22"/>
+            </svg>
+          </div>
+          <div class="shop-card-info">
+            <span class="shop-card-title">Synthesize Prism</span>
+            <span class="shop-card-sub">Convert 20 Diamonds to +1 Prism</span>
+          </div>
+        </div>
+        <button id="synthPrismBtn" class="shop-item-btn shop-btn-buy shop-btn-exchange" onclick="synthesizePrism()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" style="flex:none;"><polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)"/><polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/></svg>
+          <span id="synthPrismCostVal" class="exchange-cost-val">20</span>
+        </button>
+      </div>
+
+      <div class="shop-card">
+        <div class="shop-card-left">
+          <div class="shop-card-icon diamond-glow">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" stroke-linejoin="round">
+              <polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.3)"/>
+              <polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/>
+            </svg>
+          </div>
+          <div class="shop-card-info">
+            <span class="shop-card-title">Deconstruct Prism</span>
+            <span class="shop-card-sub">Convert 1 Prism to +15 Diamonds</span>
+          </div>
+        </div>
+        <button id="deconstructPrismBtn" class="shop-item-btn shop-btn-buy shop-btn-prism shop-btn-exchange" onclick="deconstructPrism()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" style="flex:none;"><polygon points="12 2 21 12 12 22 3 12" fill="rgba(217,70,239,.3)"/><polyline points="3 12 12 15 21 12"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
+          <span id="deconstructPrismCostVal" class="exchange-cost-val">1</span>
+        </button>
+      </div>
+
       <div class="upgrades-row-group-label">Diamond Bundles</div>
       
       <div class="shop-card">
         <div class="shop-card-left">
-          <div class="shop-card-icon">
+          <div class="shop-card-icon diamond-glow">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2">
               <polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.2)"/>
+              <polyline points="2 9 12 13 22 9"/>
+              <line x1="12" y1="22" x2="12" y2="13"/>
             </svg>
           </div>
           <div class="shop-card-info">
             <span class="shop-card-title">Pouch of Diamonds</span>
-            <span class="shop-card-sub">+50 Diamonds</span>
+            <span class="shop-card-sub">+75 Diamonds</span>
           </div>
         </div>
-        <button class="shop-item-btn shop-btn-buy" onclick="buyShopIAP('diamonds_50')">
+        <button class="shop-item-btn shop-btn-buy" onclick="buyShopIAP('diamonds_75')">
           <span>$0.49</span>
         </button>
       </div>
 
       <div class="shop-card">
         <div class="shop-card-left">
-          <div class="shop-card-icon">
+          <div class="shop-card-icon diamond-glow">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2">
               <polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.3)"/>
+              <polyline points="2 9 12 13 22 9"/>
+              <line x1="12" y1="22" x2="12" y2="13"/>
             </svg>
           </div>
           <div class="shop-card-info">
             <span class="shop-card-title">Bag of Diamonds</span>
-            <span class="shop-card-sub">+100 Diamonds</span>
+            <span class="shop-card-sub">+180 Diamonds</span>
           </div>
         </div>
-        <button class="shop-item-btn shop-btn-buy" onclick="buyShopIAP('diamonds_100')">
-          <span>$0.89</span>
+        <button class="shop-item-btn shop-btn-buy" onclick="buyShopIAP('diamonds_180')">
+          <span>$0.99</span>
         </button>
       </div>
 
@@ -566,16 +826,81 @@
           </div>
           <div class="shop-card-info">
             <span class="shop-card-title">Chest of Diamonds <span class="shop-badge">BEST VALUE</span></span>
-            <span class="shop-card-sub">+500 Diamonds</span>
+            <span class="shop-card-sub">+800 Diamonds</span>
           </div>
         </div>
-        <button class="shop-item-btn shop-btn-buy" onclick="buyShopIAP('diamonds_500')">
+        <button class="shop-item-btn shop-btn-buy" onclick="buyShopIAP('diamonds_800')">
           <span>$3.49</span>
+        </button>
+      </div>
+
+      <div class="upgrades-row-group-label prism-group-label">Prism Bundles</div>
+
+      <div class="shop-card shop-card-prism">
+        <div class="shop-card-left">
+          <div class="shop-card-icon prism-glow">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d946ef" stroke-width="2">
+              <polygon points="12 2 21 12 12 22 3 12" fill="rgba(217,70,239,.25)"/>
+              <polyline points="3 12 12 15 21 12"/>
+              <line x1="12" y1="2" x2="12" y2="22"/>
+            </svg>
+          </div>
+          <div class="shop-card-info">
+            <span class="shop-card-title">Cluster of Prisms</span>
+            <span class="shop-card-sub prism-sub">+12 Prisms</span>
+          </div>
+        </div>
+        <button class="shop-item-btn shop-btn-buy shop-btn-prism" onclick="buyShopIAP('prisms_12')">
+          <span>$0.99</span>
+        </button>
+      </div>
+
+      <div class="shop-card shop-card-prism">
+        <div class="shop-card-left">
+          <div class="shop-card-icon prism-glow">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d946ef" stroke-width="2.2">
+              <polygon points="12 2 21 12 12 22 3 12" fill="rgba(217,70,239,.35)"/>
+              <polyline points="3 12 12 15 21 12"/>
+              <line x1="12" y1="2" x2="12" y2="22"/>
+            </svg>
+          </div>
+          <div class="shop-card-info">
+            <span class="shop-card-title">Core of Prisms</span>
+            <span class="shop-card-sub prism-sub">+35 Prisms</span>
+          </div>
+        </div>
+        <button class="shop-item-btn shop-btn-buy shop-btn-prism" onclick="buyShopIAP('prisms_35')">
+          <span>$1.99</span>
+        </button>
+      </div>
+
+      <div class="shop-card shop-card-prism shop-card-max">
+        <div class="shop-card-left">
+          <div class="shop-card-icon prism-glow">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#d946ef" stroke-width="2.4">
+              <polygon points="12 2 21 12 12 22 3 12" fill="rgba(217,70,239,.5)"/>
+              <polyline points="3 12 12 15 21 12"/>
+              <line x1="12" y1="2" x2="12" y2="22"/>
+            </svg>
+          </div>
+          <div class="shop-card-info">
+            <span class="shop-card-title">Matrix of Prisms <span class="shop-badge shop-badge-purple">MAX POWER</span></span>
+            <span class="shop-card-sub prism-sub">+100 Prisms</span>
+          </div>
+        </div>
+        <button class="shop-item-btn shop-btn-buy shop-btn-prism shop-btn-prism-accent" onclick="buyShopIAP('prisms_100')">
+          <span>$3.99</span>
         </button>
       </div>
     </div>
     
-    <button class="menu-btn-glass-capsule upgrades-back-btn" onclick="closeShopScreen()"><span>BACK</span></button>
+    <button class="menu-btn-glass-capsule upgrades-back-btn" onclick="closeShopScreen()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      <span>TO MAIN MENU</span>
+    </button>
   </div>
 </div>
 
@@ -587,9 +912,27 @@
     </div>
     
     <div class="settings-combat-actions hidden" id="settingsCombatActions">
-      <button class="result-btn result-btn-primary" onclick="closeSettings()"><span>RESUME</span></button>
-      <button class="result-btn" onclick="retryLevel()"><span>RETRY</span></button>
-      <button class="result-btn" onclick="giveUpMatch()"><span>GIVE UP</span></button>
+      <button class="result-btn-pill result-btn-resume" onclick="closeSettings()">
+        <svg class="resume-play-icon" viewBox="0 0 12 14" fill="#00e5ff">
+          <polygon points="2,1 11,7 2,13"/>
+        </svg>
+        <span>RESUME</span>
+      </button>
+      <button class="result-btn-pill result-btn-retry" onclick="retryLevel()">
+        <svg class="retry-reload-icon" viewBox="0 0 16 16" fill="none">
+          <path d="M13.5 8A5.5 5.5 0 1 1 8 2.5c2.2 0 4.2.9 5.5 2.5" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+          <polyline points="10 5 14 5 14 1" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>RETRY</span>
+      </button>
+      <button class="result-btn-pill result-btn-giveup" onclick="giveUpMatch()">
+        <svg class="giveup-flag-icon" viewBox="0 0 16 18" fill="none">
+          <line x1="2" y1="1" x2="2" y2="17" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" />
+          <polygon points="2,2 14,2 11,6.5 14,11 2,11" fill="#ffffff" stroke="#ffffff" stroke-width="1" stroke-linejoin="round" />
+          <circle cx="2" cy="1" r="1.3" fill="#ffffff" />
+        </svg>
+        <span>GIVE UP</span>
+      </button>
     </div>
 
     <div class="loadout-anchor" id="loadoutAnchor-pause"></div>
@@ -646,7 +989,11 @@
             <input type="range" class="vol-range" id="settingSfxVol" min="0" max="100" step="5" value="100"
                    oninput="setSfxVolume(this.value)">
           </div>
-          <div class="setting-version-label" id="settingsVersionLabel">Version: 1.36.19</div>
+          <div class="setting-row">
+            <span>VISUAL THEME</span>
+            <select id="settingPaletteSelect" class="hud-select-dropdown" onchange="selectPalette(this.value)"></select>
+          </div>
+          <div class="setting-version-label" id="settingsVersionLabel">Version: 1.36.37</div>
         </div>
       </div>
     </div>
@@ -656,42 +1003,132 @@
 </div>
 
 <div class="overlay-screen levels-bg hidden" id="levelsScreen">
-  <div class="levels-top-bar">
-    <div class="levels-top-diamonds">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" stroke-linejoin="round">
-        <polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)"/>
-        <polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/>
-      </svg>
-      <span id="levelsDiamondVal">128</span>
+
+  <!-- 3-Way Mode Switcher -->
+<div class="mode-3way-container">
+  <div class="mode-3way-header">MODE</div>
+
+<!-- Dynamic Mode Art Banner -->
+<div class="mode-art-display" id="modeArtDisplay"></div>
+
+    <div class="mode-3way-switcher" id="mode3WaySwitcher">
+      <button class="mode-3way-tab tab-normal active" id="tabNormal" onclick="selectLevelMode('normal')">
+        <svg class="tab-icon" width="12" height="14" viewBox="0 0 12 16" fill="currentColor"><polygon points="6,0 0,9 5,9 2.5,16 11,7 6,7"/></svg>
+        <span>NORMAL</span>
+      </button>
+      <button class="mode-3way-tab tab-endless" id="tabEndless" onclick="selectLevelMode('endless')">
+  <svg class="tab-icon" width="16" height="10" viewBox="0 0 16 10" fill="none">
+    <path d="M4 2 C1.8 2 1 3.3 1 5 C1 6.7 1.8 8 4 8 C6.8 8 9.2 2 12 2 C14.2 2 15 3.3 15 5 C15 6.7 14.2 8 12 8 C9.2 8 6.8 2 4 2 Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </svg>
+  <span>ENDLESS</span>
+</button>
+      <button class="mode-3way-tab tab-hardcore" id="tabOverdrive" onclick="selectLevelMode('overdrive')">
+        <svg class="tab-icon" width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 14.5 L2.8 9.2 C1.2 7.6 1.2 5 3 3.2 C4.5 1.7 6.8 2 7.8 3.6 C8.8 2 11.1 1.7 12.6 3.2 C14.4 5 14.4 7.6 12.8 9.2 Z"/></svg>
+        <span>HARDCORE</span>
+      </button>
     </div>
-    <span class="levels-top-chapter" id="levelsTopChapter">CHAPTER 1</span>
+
+    <!-- Mode Rules Banner -->
+    <div class="mode-rules-banner" id="modeRulesBanner">
+      <!-- Injected via JS based on active mode -->
+    </div>
   </div>
 
-  <div class="levels-header-zone">
-    <div class="levels-subtitle">Select</div>
-    <div class="levels-title">Level</div>
-    <div class="level-part-navigator">
-      <button class="part-nav-btn" id="partNavPrev" onclick="navLevelSection(-1)">❮</button>
-      <span class="part-nav-label" id="partNavLabel">CHAPTER 1</span>
-      <button class="part-nav-btn" id="partNavNext" onclick="navLevelSection(1)">❯</button>
+  <!-- Content View Zone -->
+  <div class="levels-content-zone" id="levelsContentZone">
+    <!-- Campaign / Hardcore View -->
+    <div class="levels-campaign-view" id="levelsCampaignView">
+      <!-- Sector Header Navigator -->
+      <div class="level-part-navigator">
+        <button class="part-nav-btn" id="partNavPrev" onclick="navLevelSection(-1)">❮</button>
+        <span class="part-nav-label" id="partNavLabel">CHAPTER 1</span>
+        <button class="part-nav-btn" id="partNavNext" onclick="navLevelSection(1)">❯</button>
+      </div>
+
+      <!-- Swipe hint: shown conditionally when user reaches level 11 / chapter 2 -->
+      <div class="chapter-swipe-hint hidden" id="chapterSwipeHint">
+        <span class="swipe-arrow">❮</span> Swipe to change chapter <span class="swipe-arrow">❯</span>
+      </div>
+
+      <!-- Levels Grid -->
+      <div class="levels-grid" id="levelsGrid"></div>
     </div>
-    <div class="levels-swipe-hint" id="levelsSwipeHint">
-      <span class="swipe-arrow">❮</span>
-      <span class="swipe-text">Swipe to change chapter</span>
-      <span class="swipe-arrow">❯</span>
+
+    <!-- Endless Arena Dashboard View -->
+    <div class="endless-dashboard-view hidden" id="endlessDashboardView">
+      <!-- Endless Chapter Map Navigator -->
+      <div class="level-part-navigator endless-part-nav">
+        <button class="part-nav-btn" id="endlessNavPrev" onclick="navEndlessLevel(-1)">❮</button>
+        <span class="part-nav-label" id="endlessMapText">CHAPTER 1</span>
+        <button class="part-nav-btn" id="endlessNavNext" onclick="navEndlessLevel(1)">❯</button>
+      </div>
+
+      <!-- Endless Loot Badges -->
+      <div class="endless-loot-pills">
+        <div class="loot-pill diamond-pill">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linejoin="round">
+            <polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.3)"/>
+          </svg>
+          <span>+2 / WAVE</span>
+        </div>
+        <div class="loot-pill prism-pill">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#d946ef" stroke-width="2" stroke-linejoin="round">
+            <polygon points="12 2 21 12 12 22 3 12" fill="rgba(217,70,239,.3)"/>
+          </svg>
+          <span>+1 / 10 WAVES</span>
+        </div>
+      </div>
+
+      <!-- Checkpoint Highway Progress Card (Option 1) -->
+      <div class="endless-highway-card" id="endlessHighwayCard">
+        <div class="highway-card-top">
+          <span class="highway-record-title" id="endlessRecordVal">BEST : WAVE 0</span>
+          <div class="highway-reward-badge" id="highwayRewardBadge">
+            <span class="reward-val">+1</span>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#d946ef" stroke-width="2" stroke-linejoin="round">
+              <polygon points="12 2 21 12 12 22 3 12" fill="rgba(217,70,239,.4)"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="highway-track-wrapper">
+          <div class="highway-track-bg">
+            <div class="highway-track-fill" id="highwayTrackFill" style="width: 0%;"></div>
+            <div class="highway-thumb-pin" id="highwayThumbPin" style="left: 0%;"></div>
+          </div>
+        </div>
+
+        <div class="highway-labels-row">
+          <span class="highway-label-start" id="highwayStartLabel">1</span>
+          <span class="highway-label-curr" id="highwayCurrLabel">W0</span>
+          <span class="highway-label-end" id="highwayEndLabel">10</span>
+        </div>
+      </div>
+
+<!-- Battle CTA Button -->
+      <button class="endless-battle-btn" id="endlessDeployBtn" onclick="confirmStartEndlessRun()">
+        <span class="battle-btn-text">BATTLE</span>
+        <span class="battle-btn-divider"></span>
+        <div class="battle-btn-status" id="endlessDeployTicketText">FREE (1/1)</div>
+      </button>
     </div>
   </div>
 
-  <div class="levels-grid" id="levelsGrid"></div>
-  
-  <div class="loadout-anchor" id="loadoutAnchor-levels" style="margin-top: 10px;"></div>
+  <!-- Shared Bottom Loadout Anchor & Main Menu Back Button -->
+  <div class="loadout-anchor" id="loadoutAnchor-levels"></div>
 
-  <button class="menu-btn-glass-capsule" style="margin-top: auto; margin-bottom: 24px; min-height: 48px;" onclick="showStartScreen()"><span>BACK</span></button>
+  <button class="menu-btn-glass-capsule levels-main-menu-btn" onclick="showStartScreen()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="19" y1="12" x2="5" y2="12"></line>
+      <polyline points="12 19 5 12 12 5"></polyline>
+    </svg>
+    <span>TO MAIN MENU</span>
+  </button>
 </div>
 
 <div class="loadout-widget hidden" id="loadoutWidget">
   <div class="loadout-widget-header" onclick="toggleLoadoutWidgetExpanded()">
-    <span class="loadout-widget-label">TOWERS SELECTED</span>
+    <span class="loadout-widget-label">SELECTED TOWERS</span>
     <div class="loadout-widget-right">
       <div class="loadout-widget-mini-icons" id="loadoutWidgetMiniIcons"></div>
       <span class="loadout-widget-count hidden" id="loadoutWidgetCount">0/3</span>
@@ -711,8 +1148,120 @@
     <div class="result-subline" style="text-align: center; margin-bottom: 16px; color: #94a3b8;">
       Progress in battle will be lost.
     </div>
-    <button class="result-btn result-btn-primary" onclick="confirmGiveUp()"><span>Give Up</span></button>
-    <button class="result-btn" onclick="cancelGiveUp()" style="margin-top: 8px;"><span>Cancel</span></button>
+
+    <!-- Точно такая же кнопка сдачи, как в меню паузы: те же классы, стили и белый флажок -->
+    <button class="result-btn-pill result-btn-giveup" onclick="confirmGiveUp()">
+      <svg class="giveup-flag-icon" viewBox="0 0 16 18" fill="none">
+        <line x1="2" y1="1" x2="2" y2="17" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+        <polygon points="2,2 14,2 11,6.5 14,11 2,11" fill="#ffffff" stroke="#ffffff" stroke-width="1" stroke-linejoin="round"/>
+        <circle cx="2" cy="1" r="1.3" fill="#ffffff"/>
+      </svg>
+      <span>GIVE UP</span>
+    </button>
+
+    <!-- Кнопка Cancel со стрелкой назад, как в меню перехода -->
+    <button class="result-btn" onclick="cancelGiveUp()" style="margin-top: 8px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      <span>CANCEL</span>
+    </button>
+  </div>
+</div>
+
+<!-- [HTM107.01] Battle Pass Screen overlay -->
+<div class="overlay-screen transparent-bg upgrades-bg hidden" id="battlePassScreen">
+  <div class="upgrades-content-col bp-content-col">
+    <div class="upgrades-top-bar">
+      <div class="levels-top-resources">
+        <div class="levels-top-diamonds">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" stroke-linejoin="round">
+            <polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)"/>
+            <polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/>
+          </svg>
+          <span id="bpDiamondVal">0</span>
+        </div>
+        <div class="levels-top-prisms">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#d946ef" stroke-width="2.2" stroke-linejoin="round">
+            <polygon points="12 2 21 12 12 22 3 12" fill="rgba(217,70,239,.25)"/>
+            <polyline points="3 12 12 15 21 12"/>
+            <line x1="12" y1="2" x2="12" y2="22"/>
+          </svg>
+          <span id="bpPrismVal">0</span>
+        </div>
+      </div>
+      <span class="upgrades-top-label">SYNTH PASS</span>
+    </div>
+
+    <!-- BP Header: Tier, XP progress, Activate Premium, Buy Tier, Palette selector -->
+    <div class="bp-header-card">
+      <div class="bp-header-top">
+        <div class="bp-tier-badge" id="bpTierBadgeText">TIER 1 / 30</div>
+        <div class="bp-palette-picker-wrap" id="bpPalettePickerWrap" onclick="handleBpThemeClick(event)">
+          <span class="bp-palette-label">VISUAL THEME:</span>
+          <select id="bpPaletteSelect" class="hud-select-dropdown" onchange="selectPalette(this.value)"></select>
+        </div>
+      </div>
+      <div class="bp-xp-bar-container">
+        <div class="bp-xp-bar-fill" id="bpXpBarFill"></div>
+        <span class="bp-xp-bar-text" id="bpXpBarText">XP: 0 / 100</span>
+      </div>
+      <div class="bp-header-actions">
+        <button id="bpActivatePremBtn" class="bp-action-btn bp-btn-premium" onclick="buyBpPremiumIAP()">
+          <span>ACTIVATE PREMIUM ($2.99)</span>
+        </button>
+        <button class="bp-action-btn bp-btn-buy-tier" onclick="buyBpTierWithDiamonds()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" stroke-linejoin="round"><polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)"/><polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/></svg>
+          <span>+1 TIER (30</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" style="flex:none; margin-left:1px;"><polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)"/><polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/></svg>
+          <span>)</span>
+        </button>
+      </div>
+      <div class="bp-dev-controls hidden" id="bpDevControls">
+        <button class="bp-dev-btn" onclick="devAddBpXp(100)">+100 BP XP</button>
+        <button class="bp-dev-btn" onclick="devToggleBpPremium()">TOGGLE PREMIUM</button>
+      </div>
+    </div>
+
+    <!-- 30 tiers scrollable list -->
+    <div class="upgrades-row-list bp-tier-list" id="bpTierListBody"></div>
+
+    <button class="menu-btn-glass-capsule upgrades-back-btn" onclick="closeBattlePassScreen()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      <span>TO MAIN MENU</span>
+    </button>
+  </div>
+</div>
+
+<div class="overlay-screen result-screen hidden" id="dailyLoginModal" style="z-index: 10008;">
+  <div class="daily-modal-card">
+    <div class="daily-modal-header">
+      <span class="daily-modal-title">DAILY REWARDS</span>
+      <button class="daily-modal-close-btn" onclick="closeDailyLoginModal()" title="Close">&times;</button>
+    </div>
+
+    <!-- 7-day streak track widget -->
+    <div class="daily-streak-track" id="dailyStreakTrack">
+      <!-- Rendered dynamically by ui.js -->
+    </div>
+
+    <div class="daily-grid-container" id="dailyCalendarGrid">
+      <!-- 7 day cards rendered dynamically by ui.js -->
+    </div>
+
+    <div class="daily-modal-actions" id="dailyModalActions">
+      <button id="dailyLoginClaimNormalBtn" class="daily-claim-btn daily-claim-normal" onclick="claimDailyLoginReward(false)">
+        <span>CLAIM</span>
+      </button>
+      <button id="dailyLoginClaimDoubleBtn" class="daily-claim-btn daily-claim-double" onclick="claimDailyLoginReward(true)">
+        <svg id="dailyDoubleAdIcon" width="18" height="14" viewBox="0 0 24 24" style="flex:none; margin-right:6px;"><rect x="2" y="4" width="20" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><polygon points="10,9 16,12 10,15" fill="currentColor"/></svg>
+        <span id="dailyClaimDoubleLabel">CLAIM x2</span>
+      </button>
+    </div>
   </div>
 </div>
 
@@ -727,38 +1276,6 @@
       Thank you!
     </div>
     <button class="result-btn result-btn-primary" onclick="closeGameCompletionModal()" style="width: 100%;"><span>OK</span></button>
-  </div>
-</div>
-
-<div class="overlay-screen result-screen hidden" id="recommendationsModal" style="z-index: 10005;">
-  <div class="result-stack" style="background: rgba(10, 14, 28, 0.96); border: 1px solid rgba(0, 229, 255, 0.35); border-radius: 16px; padding: 22px; max-width: 340px; text-align: left;">
-    <div class="result-heading seq-in" style="margin-bottom: 12px; text-align: center;">
-      <div class="result-title" style="font-size: 22px; color: #00e5ff;">TO WIN TRY</div>
-    </div>
-    <ul id="recommendationsList" style="margin: 0 0 14px 20px; padding: 0; color: #f1f5f9; font-size: 14px; line-height: 1.6; list-style-type: disc;">
-      <li>different towers</li>
-      <li>various positions</li>
-      <li>upgrading first</li>
-      <li id="recMaxTechItem" style="display:none;">maxing tech tree</li>
-    </ul>
-    <div style="font-size: 13px; color: #94a3b8; line-height: 1.5; margin-bottom: 18px; text-align: center;">
-      To get diamonds (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" stroke-linejoin="round" style="vertical-align: middle; display: inline-block; margin: 0 1px;"><polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)"/><polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/></svg>) complete previous easier levels, visit GIFTS & SHOP.
-    </div>
-    <button class="result-btn result-btn-primary" onclick="closeRecommendationsModal()" style="width: 100%;"><span>OK</span></button>
-  </div>
-</div>
-
-<div class="overlay-screen result-screen hidden" id="pauseScreen">
-  <div class="result-stack">
-    <div class="result-heading seq-in">
-      <div class="result-kicker">Game</div>
-      <div class="result-title">Paused</div>
-    </div>
-    <button class="result-btn result-btn-primary seq-in seq-d1" onclick="togglePause()"><span>RESUME</span></button>
-    <button class="result-btn seq-in seq-d2" onclick="retryLevel()"><span>RETRY</span></button>
-    <button class="result-btn seq-in seq-d2" onclick="giveUpMatch()"><span>GIVE UP</span></button>
-    <button class="result-btn seq-in seq-d3" onclick="showSettings('pause')"><span>SETTINGS</span></button>
-    <div class="loadout-anchor seq-in seq-d4" id="loadoutAnchor-pause"></div>
   </div>
 </div>
 
@@ -781,27 +1298,63 @@
 <div class="overlay-screen result-screen hidden" id="victoryScreen">
   <div class="result-stack">
     <div class="result-heading seq-in">
-      <div class="result-kicker">Level</div>
-      <div class="result-title">Completed</div>
+      <div class="result-kicker">LEVEL</div>
+      <div class="result-title">COMPLETED</div>
     </div>
     <div class="result-stars-row" id="victoryStarsRow"></div>
     <div class="result-reward-chip seq-in seq-d3" id="victoryRewardBox">
       <span class="reward-amount" id="victoryRewardVal">+2</span>
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" stroke-linejoin="round">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" stroke-linejoin="round" style="flex:none;">
         <polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)"/>
         <polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/>
       </svg>
-      <span class="reward-label" id="victoryRewardBadgeType">DIAMONDS</span>
+      <span class="reward-label" id="victoryRewardBadgeType">FARM REWARD</span>
     </div>
-    <button class="result-btn result-btn-primary seq-in seq-d4" id="claimX2Btn" onclick="claimX2Reward()">
-      <svg width="15" height="15" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="3" fill="none" stroke="#ffffff" stroke-width="2"/><polygon points="10,9 16,12 10,15" fill="#ffffff"/></svg>
+    <button class="result-btn victory-claim-btn seq-in seq-d4" id="claimX2Btn" onclick="claimX2Reward()">
+      <svg width="18" height="14" viewBox="0 0 24 24" style="flex:none; margin-right:6px;"><rect x="2" y="4" width="20" height="16" rx="3" fill="none" stroke="#ffffff" stroke-width="2"/><polygon points="10,9 16,12 10,15" fill="#ffffff"/></svg>
       <span>CLAIM x2</span>
     </button>
-    <button class="result-btn seq-in seq-d4" onclick="nextLevel()"><span>NEXT LEVEL</span></button>
-    <button class="result-btn seq-in seq-d5" onclick="retryLevel()"><span>RETRY</span></button>
-    <button class="result-btn seq-in seq-d5" id="victoryUpgradesBtn" onclick="showUpgradesScreen('victory')"><span>TECH TREE</span></button>
-    <button class="result-btn seq-in seq-d5" onclick="showLevelSelectFromGame()"><span>LEVELS</span></button>
-    <button class="result-btn seq-in seq-d6" onclick="showShopScreen('victory')"><span>GIFTS & SHOP</span></button>
+    <button class="result-btn seq-in seq-d4" onclick="nextLevel()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;">
+        <path d="M5 12h14M12 5l7 7-7 7"/>
+      </svg>
+      <span>NEXT LEVEL</span>
+    </button>
+    <button class="result-btn seq-in seq-d5" onclick="retryLevel()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;">
+        <path d="M21.5 2v6h-6M2.5 22v-6h6"/>
+        <path d="M2 11.5a10 10 0 0 1 18.8-4.3L21.5 8M2.5 16l1 1.2A10 10 0 0 0 22 12.5"/>
+      </svg>
+      <span>RETRY</span>
+    </button>
+    <button class="result-btn seq-in seq-d5" id="victoryUpgradesBtn" onclick="showUpgradesScreen('victory')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex:none; margin-right: 4px;">
+        <path d="M12 21 v-5 l-4 -3.5 v-4 m4 7.5 l4 -3.5 v-4 m-4 7.5 v-8" />
+        <circle cx="12" cy="21" r="1.5" fill="currentColor" stroke="none" />
+        <circle cx="8" cy="8.5" r="1.5" fill="currentColor" stroke="none" />
+        <circle cx="16" cy="8.5" r="1.5" fill="currentColor" stroke="none" />
+        <circle cx="12" cy="5" r="1.5" fill="currentColor" stroke="none" />
+      </svg>
+      <span>TECH TREE</span>
+    </button>
+    <button class="result-btn seq-in seq-d5" onclick="showLevelSelectFromGame()">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" style="flex:none;">
+        <rect x="0" y="0" width="5.5" height="5.5" rx="1.5" />
+        <rect x="8" y="0" width="5.5" height="5.5" rx="1.5" />
+        <rect x="0" y="8" width="5.5" height="5.5" rx="1.5" />
+        <rect x="8" y="8" width="5.5" height="5.5" rx="1.5" />
+      </svg>
+      <span>LEVELS</span>
+    </button>
+    <button class="result-btn seq-in seq-d6" onclick="showShopScreen('victory')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;">
+        <rect x="2" y="7" width="20" height="14" rx="2" />
+        <line x1="2" y1="12" x2="22" y2="12" />
+        <line x1="12" y1="7" x2="12" y2="21" />
+        <path d="M 7.5,7 C 5.5,7 4,5.5 5.5,4 C 7,2.5 9.5,4.5 12,7 C 14.5,4.5 17,2.5 18.5,4 C 20,5.5 18.5,7 16.5,7" />
+      </svg>
+      <span>GIFTS & SHOP</span>
+    </button>
 
     <div class="loadout-anchor seq-in seq-d6" id="loadoutAnchor-victory"></div>
   </div>
@@ -810,7 +1363,7 @@
 <div class="overlay-screen result-screen hidden" id="adSimOverlay" style="z-index: 10010;">
   <div class="result-stack" style="background: rgba(10, 14, 28, 0.96); border: 1px solid rgba(0, 229, 255, 0.35); border-radius: 16px; padding: 24px; max-width: 320px; text-align: center;">
     <div class="result-heading seq-in" style="margin-bottom: 12px;">
-      <div class="result-title" style="font-size: 24px;">Ad shown?</div>
+      <div class="result-title" style="font-size: 24px;">Success?</div>
     </div>
     <div style="display: flex; gap: 12px; margin-top: 16px; width: 100%;">
       <button class="result-btn result-btn-primary" id="adSimYesBtn" style="flex: 1;"><span>Yes</span></button>
@@ -819,24 +1372,106 @@
   </div>
 </div>
 
-<div class="overlay-screen result-screen is-fail hidden" id="defeatScreen">
+<div class="overlay-screen result-screen is-fail grunt-stripe-bg hidden" id="defeatScreen">
   <div class="defeat-flash" id="defeatFlash"></div>
   <div class="result-stack">
     <div class="result-heading fail-shake">
-      <div class="result-kicker">Level</div>
-      <div class="result-title" data-text="Failed">Failed</div>
+      <div class="result-kicker result-kicker-grunt">LEVEL</div>
+      <div class="result-title result-title-grunt" data-text="FAILED">FAILED</div>
     </div>
     <div class="result-subline seq-in seq-d1" id="defeatWaveLine">WAVE 1 OF 1 REACHED</div>
     
-    <button class="result-btn result-btn-primary hidden" id="reviveBtn" onclick="acceptEmergencyRevive()">
-      <svg width="15" height="15" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="3" fill="none" stroke="#ffffff" stroke-width="2"/><polygon points="10,9 16,12 10,15" fill="#ffffff"/></svg>
-      <span id="reviveBtnLabel">REVIVE (3s)</span>
+    <div class="endless-rewards-box hidden" id="endlessRewardsBox" style="margin: 8px 0; text-align: center;">
+      <div class="endless-record-badge hidden" id="endlessNewRecordBadge" style="font-family: 'Montserrat', sans-serif; font-size: 13px; font-weight: 900; color: #f05f9f; text-shadow: 0 0 10px #f05f9f; margin-bottom: 6px;">
+        ★ NEW RECORD! ★
+      </div>
+      <div class="endless-loot-line" id="endlessLootLine">
+			<span style="color:#ffffff; font-weight:800; margin-right:6px; letter-spacing:0.5px;">REWARDS:</span><span style="color:#ffffff; font-weight:700;">+0</span> <svg class="loot-res-svg diamond" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" stroke-linejoin="round" style="vertical-align: -2px; margin-left: 2px;"><polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.3)"/><polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/></svg> <span class="loot-line-sep" style="color:rgba(255,255,255,0.3); margin: 0 6px;">|</span><span style="color:#ffffff; font-weight:700;">+0</span> <svg class="loot-res-svg prism" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d946ef" stroke-width="2.2" stroke-linejoin="round" style="vertical-align: -2px; margin-left: 2px;"><polygon points="12 2 21 12 12 22 3 12" fill="rgba(217,70,239,.3)"/><polyline points="3 12 12 15 21 12"/><line x1="12" y1="22" x2="12" y2="22"/></svg>
+	  </div>
+      <button class="result-btn victory-claim-btn hidden" id="endlessDoubleBtn" onclick="claimEndlessDoubleRewards()" style="margin-top: 8px;">
+        <svg width="18" height="14" viewBox="0 0 24 24" style="flex:none; margin-right:6px;"><rect x="2" y="4" width="20" height="16" rx="3" fill="none" stroke="#ffffff" stroke-width="2"/><polygon points="10,9 16,12 10,15" fill="#ffffff"/></svg>
+        <span>CLAIM x2</span>
+      </button>
+    </div>
+
+    <!-- Emergency Revive Circular Timer -->
+    <div class="revive-timer-container hidden" id="reviveTimerContainer">
+      <svg class="revive-timer-svg" width="90" height="90" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="44" fill="#15040e" stroke="#3d0a27" stroke-width="6"/>
+        <circle class="revive-timer-progress" id="reviveTimerProgress" cx="50" cy="50" r="44" fill="none" stroke="#f05f9f" stroke-width="6" stroke-linecap="round" stroke-dasharray="276.46" stroke-dashoffset="0" transform="rotate(-90 50 50)"/>
+      </svg>
+      <div class="revive-timer-number" id="reviveTimerNumber">3s</div>
+    </div>
+
+    <button class="result-btn result-btn-grunt hidden" id="reviveBtn" onclick="acceptEmergencyRevive()">
+      <svg width="16" height="13" viewBox="0 0 16 13" fill="none" style="flex:none;">
+        <rect x="0" y="0" width="16" height="13" rx="2.5" fill="none" stroke="#ffffff" stroke-width="1.6"/>
+        <polygon points="6,3.5 11,6.5 6,9.5" fill="#ffffff"/>
+      </svg>
+      <span id="reviveBtnLabel">REVIVE</span>
     </button>
     <button class="result-skip-btn hidden" id="reviveSkipBtn" onclick="skipEmergencyRevive()">Skip</button>
-    <button class="result-btn seq-in seq-d2" id="defeatRetryBtn" onclick="retryLevel()"><span>RETRY</span></button>
-    <button class="result-btn seq-in seq-d2" id="defeatUpgradesBtn" onclick="showUpgradesScreen('defeat')"><span>TECH TREE</span></button>
-    <button class="result-btn seq-in seq-d2" id="defeatLevelsBtn" onclick="showLevelSelectFromGame()"><span>LEVELS</span></button>
-    <button class="result-btn seq-in seq-d3" id="defeatShopBtn" onclick="showShopScreen('defeat')"><span>GIFTS & SHOP</span></button>
+
+<button class="result-btn result-btn-primary seq-in seq-d2" id="defeatRetryBtn" onclick="retryLevel()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;">
+        <path d="M21.5 2v6h-6M2.5 22v-6h6"/>
+        <path d="M2 11.5a10 10 0 0 1 18.8-4.3L21.5 8M2.5 16l1 1.2A10 10 0 0 0 22 12.5"/>
+      </svg>
+      <span>RETRY</span>
+    </button>
+
+    <button class="result-btn seq-in seq-d2" id="defeatUpgradesBtn" onclick="showUpgradesScreen('defeat')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex:none; margin-right: 4px;">
+        <path d="M12 21 v-5 l-4 -3.5 v-4 m4 7.5 l4 -3.5 v-4 m-4 7.5 v-8" />
+        <circle cx="12" cy="21" r="1.5" fill="currentColor" stroke="none" />
+        <circle cx="8" cy="8.5" r="1.5" fill="currentColor" stroke="none" />
+        <circle cx="16" cy="8.5" r="1.5" fill="currentColor" stroke="none" />
+        <circle cx="12" cy="5" r="1.5" fill="currentColor" stroke="none" />
+      </svg>
+      <span>TECH TREE</span>
+    </button>
+
+    <button class="result-btn seq-in seq-d2" id="defeatLevelsBtn" onclick="showLevelSelectFromGame()">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" style="flex:none;">
+        <rect x="0" y="0" width="5.5" height="5.5" rx="1.5" />
+        <rect x="8" y="0" width="5.5" height="5.5" rx="1.5" />
+        <rect x="0" y="8" width="5.5" height="5.5" rx="1.5" />
+        <rect x="8" y="8" width="5.5" height="5.5" rx="1.5" />
+      </svg>
+      <span>LEVELS</span>
+    </button>
+
+    <button class="result-btn seq-in seq-d3" id="defeatShopBtn" onclick="showShopScreen('defeat')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;">
+        <rect x="2" y="7" width="20" height="14" rx="2" />
+        <line x1="2" y1="12" x2="22" y2="12" />
+        <line x1="12" y1="7" x2="12" y2="21" />
+        <path d="M 7.5,7 C 5.5,7 4,5.5 5.5,4 C 7,2.5 9.5,4.5 12,7 C 14.5,4.5 17,2.5 18.5,4 C 20,5.5 18.5,7 16.5,7" />
+      </svg>
+      <span>GIFTS & SHOP</span>
+    </button>
+
+    <!-- Tactical Tip Accordion Widget -->
+    <div class="tactical-tips-widget seq-in seq-d3" id="tacticalTipsWidget" onclick="toggleTacticalTips()">
+      <div class="tactical-tips-header">
+        <div class="tactical-tips-header-left">
+          <span class="tactical-tips-title">TACTICAL TIP</span>
+          <span class="tactical-tips-preview" id="tacticalTipsPreview">Focus on upgrading towers first</span>
+        </div>
+        <span class="tactical-tips-arrow" id="tacticalTipsArrow">▾</span>
+      </div>
+      <div class="tactical-tips-body hidden" id="tacticalTipsBody">
+        <div class="tactical-tips-divider"></div>
+        <ul class="tactical-tips-list">
+          <li>Focus on upgrading existing towers first</li>
+          <li>Test different placements close to mob path and its turns</li>
+		  <li>Try various towers</li>
+          <li>Unlock passive base perks in <span style="color:#ffffff; font-weight:800;">Tech Tree</span></li>
+		  <li>To get additional diamonds and prisms - complete previous levels and try other modes</li>
+        </ul>
+      </div>
+    </div>
+
     <div class="loadout-anchor seq-in seq-d3" id="loadoutAnchor-defeat"></div>
   </div>
 </div>
@@ -881,7 +1516,6 @@ loadGame().then(() => {
       SFX.autoload();
     } 
   } catch (e) {}
-  try { if (typeof SFX !== 'undefined' && SFX) SFX.autoload(); } catch (e) {}
   applyMusicVolume(settings.musicVolume != null ? settings.musicVolume : (settings.musicEnabled === false ? 0 : 70), false);
 
   function finishLoading() {
@@ -927,6 +1561,7 @@ loadGame().then(() => {
   initBuildPanel();
   toggleDevMode(initialDevState);
   updateDiamondUI();
+  updatePrismUI();
   showStartScreen();
 
   window.__gameBooted = true;
@@ -948,10 +1583,35 @@ loadGame().then(() => {
     <span class="tap-ring r1"></span>
     <span class="tap-ring r2"></span>
   </div>
-  <div class="tutorial-pointer hidden" id="tutorialPointer">
-    <svg width="28" height="28" viewBox="0 0 28 28">
-      <circle cx="14" cy="14" r="10" fill="none" stroke="#00e5ff" stroke-width="1.5" opacity="0.5" />
-      <circle cx="14" cy="14" r="6" fill="#00e5ff" />
+<div class="tutorial-pointer hidden" id="tutorialPointer">
+    <svg width="44" height="44" viewBox="-6 -6 40 40" fill="none" style="overflow: visible; filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.9));">
+      <!-- Дуга волны касания (ripple) над кончиком пальца как на картинке -->
+      <path d="M -3 3 A 4.5 4.5 0 0 1 3 -3" 
+            stroke="#00e5ff" stroke-width="2.2" stroke-linecap="round"/>
+
+      <!-- Точный силуэт руки: вытянутый указательный палец, согнутые пальцы и большой палец снизу -->
+      <path d="M 0 0 
+               L 8 8 
+               C 8.8 8.8, 9.8 8.5, 10.4 7.9 
+               C 11 7.3, 11 6.3, 10.3 5.5 
+               L 6.5 1.5 
+               C 7.5 0.5, 9 0.5, 10 1.5 
+               L 12.5 4 
+               C 13.5 3.2, 14.8 3.5, 15.5 4.5 
+               C 16.2 4, 17.5 4.3, 18 5.2 
+               C 18.5 6, 25 12.5, 25 15.5 
+               C 25 21, 20.5 24, 14 24 
+               L 3 24 
+               C 1 24, 0 22.5, 1 21 
+               C 2 19.5, 7.5 19, 9 18.5 
+               L 0 7 
+               C -1.2 5.8, -1.2 3.8, 0 2.6 
+               Z" 
+            fill="rgba(4, 8, 18, 0.92)" 
+            stroke="#00e5ff" 
+            stroke-width="2.2" 
+            stroke-linecap="round" 
+            stroke-linejoin="round"/>
     </svg>
   </div>
   <div class="tutorial-bubble hidden" id="tutorialBubble"><span id="tutorialBubbleText"></span></div>
