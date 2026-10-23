@@ -1,7 +1,7 @@
 # Instructions for Jules (AI Developer Agent)
 
 This repository contains a mobile-first synthwave Tower Defense game built with pure Vanilla JavaScript (Canvas 2D + Web Audio API).
-Depending on the name of repository it is either dev-synth-wave-defense repository - `dev' or 'synth-wave-defense.github.io' - production.
+Depending on the name of repository it is either dev-synth-wave-defense repository - `dev` or `synth-wave-defense.github.io` - production.
 
 ## 1. Strict Architecture Rules
 1. **Zero-Build Vanilla Stack:**
@@ -38,30 +38,30 @@ Depending on the name of repository it is either dev-synth-wave-defense reposito
   - Other files can have the same version as well, meaning that if you change `data.js`, and new version is 1.36.03, you need to update the version in `index.html` and you can add it into `data.js`.
 
 ## 4. Production Deployment Protocol (Dev -> Production Only)
-Minification and obfuscation are **forbidden in everyday development commits**. They are now handled **automatically by GitHub Actions** (`release-ota.yml`) upon pushing to the `main` branch of the production repository. 
+Minification and obfuscation are **forbidden in everyday development commits**. They must ONLY be applied when preparing a release to move files from `dev` (`dev-synth-wave-defense`) to `production` (`synth-wave-defense.github.io`). Because production files are publicly served via GitHub Pages, they must be protected before pushing to the repository.
 
-When tasked with a production release or build sync, your job is ONLY to transfer clean, unminified files to the `www/` directory and update `update_manifest.json`. The CI/CD pipeline will automatically execute the following rules:
+When tasked with a production release or build sync, you MUST prepare the code in `www/` following this pipeline:
 
-1. **Minification (Applied to ALL JS files):**
-   - `Terser` is used to minify ALL JavaScript files for maximum compression.
+1. **Selective Obfuscation (Apply to SPECIFIC files only):**
+   - Apply `javascript-obfuscator` ONLY to the following files containing sensitive game logic and balance data:
+     - `data.js` (Obfuscate completely).
+     - `levels_data.js` (Obfuscate completely).
+     - `engine.js` (Obfuscate partially. You must strictly respect the `// javascript-obfuscator: disable` and `// javascript-obfuscator: enable` flags around the high-performance `update(dt)` simulation loop).
 
-2. **Selective Obfuscation (Applied to SPECIFIC files only):**
-   - `javascript-obfuscator` is applied ONLY to the following files containing sensitive game logic and balance data:
-     - `data.js` (Obfuscated completely).
-     - `levels_data.js`
-     - `engine.js` (Obfuscated partially. `// javascript-obfuscator: disable` and `// javascript-obfuscator: enable` flags are strictly respected).
-
-3. **Strict Obfuscation Exclusions:**
-   - The following files are highly sensitive to CPU overhead or critical for updates and MUST remain unobfuscated (minification only):
+2. **Strict Obfuscation Exclusions:**
+   - Do **NOT** run `javascript-obfuscator` on the following files. They are highly sensitive to CPU overhead or critical for updates and MUST remain unobfuscated (minification only):
      - `ui.js` (Canvas rendering and batching)
      - `audio.js` (Web Audio API engine)
-     - `music.js` (Music streaming)
+     - `music.js` (Music streaming - works with GitHub Releases)
      - `sfx-manifest.js` (DSP parameters)
      - `telemetry.js` (Crash reporting)
      - `updater.js` (OTA logic and `NativeOtaBridge` calls must not be mangled)
 
+3. **Minification (Apply to ALL JS files):**
+   - After selective obfuscation, run `Terser` across ALL `.js` files in `www/` for maximum compression.
+
 4. **Lightweight Obfuscator Settings:**
-   - The CI/CD server uses the following lightweight configuration to prevent mobile frame drops:
+   - You MUST use the following lightweight configuration for `javascript-obfuscator` to prevent mobile frame drops:
    ```json
    {
      "controlFlowFlattening": false,
@@ -70,3 +70,21 @@ When tasked with a production release or build sync, your job is ONLY to transfe
      "deadCodeInjection": false,
      "identifierNamesGenerator": "hexadecimal"
    }
+   ```
+   *(Note: The remote workflow `.github/workflows/ota-bundle.yml` will automatically package the resulting `www/` directory into `bundle.zip`, publish it to `ota-bundles`, and stamp the commit SHA into `update_manifest.json` on push).*
+
+## 5. Environment Isolation & File Transfer Protocol
+When transferring updates from the `dev` repository to the `prod` repository, you must ONLY transfer the core game assets. Do NOT overwrite the production environment's native container or system configurations.
+
+**INCLUDED (Files you MUST transfer and process):**
+- All contents of the `www/` directory (including `index.html`, `engine.js`, `ui.js`, `data.js`, `updater.js`, `.css` files, and media assets like audio/images).
+- `AGENTS.md` (if updated).
+
+**EXCLUDED (Strictly DO NOT transfer, modify, or overwrite in the prod repo):**
+- `capacitor.config.json` (Contains environment-specific server hostnames and Package IDs).
+- `android/` directory (Contains environment-specific native Android builds and Gradle files).
+- `package.json` and `package-lock.json` (Node.js dependencies).
+- `node_modules/`
+- `.github/workflows/` (Unless explicitly asked to update the CI/CD pipeline).
+- `bundle.zip` (Generated automatically by CI/CD).
+- `.git/` hidden folders.
