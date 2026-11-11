@@ -249,6 +249,7 @@ public class MainActivity extends BridgeActivity {
         private boolean isSdkInitialized = false;
         private boolean isInitializing = false;
         private String pendingAdUnitId = "demo-rewarded-yandex";
+        private final android.os.Handler mainHandler = new android.os.Handler(Looper.getMainLooper());
 
         public NativeYandexAdsBridge(Context context) {
             this.context = context;
@@ -296,37 +297,42 @@ public class MainActivity extends BridgeActivity {
             runOnUiThread(() -> {
                 try {
                     if (isSdkInitialized) {
-                        recordStep("YandexAds already initialized -> loading " + pendingAdUnitId);
                         loadRewardedAd(pendingAdUnitId);
                         return;
                     }
-                    if (isInitializing) {
-                        recordStep("YandexAds initialization already in progress...");
-                        return;
-                    }
-                    isInitializing = true;
-                    recordStep("Calling MobileAds.initialize...");
-                    MobileAds.initialize(context.getApplicationContext(), new InitializationListener() {
-                        @Override
-                        public void onInitializationCompleted() {
-                            runOnUiThread(() -> {
-                                try {
+                    if (!isInitializing) {
+                        isInitializing = true;
+                        recordStep("Calling MobileAds.initialize...");
+                        MobileAds.initialize(context.getApplicationContext(), new InitializationListener() {
+                            @Override
+                            public void onInitializationCompleted() {
+                                runOnUiThread(() -> {
                                     isSdkInitialized = true;
                                     isInitializing = false;
                                     recordStep("MobileAds.onInitializationCompleted() SUCCESS");
                                     setupLoader();
                                     loadRewardedAd(pendingAdUnitId);
-                                } catch (Throwable t) {
-                                    recordStep("ERROR in onInitializationCompleted: " + Log.getStackTraceString(t));
-                                }
-                            });
-                        }
-                    });
+                                });
+                            }
+                        });
+
+                        // Fallback-таймер (2.5 сек): если фоновый поток MobileAds.initialize упал на TLSv1
+                        // и не вызвал onInitializationCompleted, разблокируем загрузчик принудительно!
+                        mainHandler.postDelayed(() -> {
+                            if (!isSdkInitialized) {
+                                recordStep("MobileAds init fallback triggered (2.5s timeout) -> forcing loader start");
+                                isSdkInitialized = true;
+                                isInitializing = false;
+                                setupLoader();
+                                loadRewardedAd(pendingAdUnitId);
+                            }
+                        }, 2500L);
+                    }
                 } catch (Throwable t) {
                     isInitializing = false;
+                    isSdkInitialized = true;
                     recordStep("ERROR in MobileAds.initialize: " + Log.getStackTraceString(t));
-                    String msg = t.getMessage() != null ? t.getMessage().replace("'", "\\'") : "Init error";
-                    notifyJsFailedToLoad("Native init error: " + msg);
+                    loadRewardedAd(pendingAdUnitId);
                 }
             });
         }
@@ -415,17 +421,19 @@ public class MainActivity extends BridgeActivity {
 
             runOnUiThread(() -> {
                 try {
-                    if (!isSdkInitialized) {
-                        recordStep("loadRewardedAd: SDK not initialized yet, calling initialize()");
-                        initialize(unitToLoad);
-                        return;
-                    }
-
                     // Если реклама уже загружена в памяти — сразу подтверждаем готовность в JS!
                     if (rewardedAd != null) {
                         recordStep("loadRewardedAd: ad already ready in memory -> immediately notifying JS");
                         isAdLoading = false;
                         notifyJsLoaded();
+                        return;
+                    }
+
+                    if (!isSdkInitialized) {
+                        recordStep("loadRewardedAd: SDK still in initial 2.5s window, waiting for init/fallback...");
+                        if (!isInitializing) {
+                            initialize(unitToLoad);
+                        }
                         return;
                     }
 
@@ -471,7 +479,6 @@ public class MainActivity extends BridgeActivity {
                 try {
                     if (rewardedAd != null) {
                         RewardedAd adToShow = rewardedAd;
-                        // Сразу освобождаем слот, чтобы после просмотра ничто не блокировало новую загрузку
                         rewardedAd = null;
                         isAdLoading = false;
                         adToShow.show(MainActivity.this);
