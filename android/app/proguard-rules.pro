@@ -1,44 +1,25 @@
 # Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://android.com
+-keepattributes *Annotation*,JavascriptInterface,Signature,InnerClasses,EnclosingMethod
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#    public *;
-#}
-
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
-
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
-
-# Protect JavaScript Interfaces for WebView
--keepattributes *Annotation*,JavascriptInterface
-
+# Save classes of our app (both prod and dev) and JS-bridge
+-keep class io.github.synthwave.defense.** { *; }
+-keepclassmembers class io.github.synthwave.defense.** {
+    @android.webkit.JavascriptInterface <methods>;
+}
 -keepclassmembers class * {
     @android.webkit.JavascriptInterface <methods>;
 }
 
--keepclassmembers class * extends com.getcapacitor.BridgeActivity {
-    *;
-}
+# Capacitor Defense
+-keep class com.getcapacitor.** { *; }
+-dontwarn com.getcapacitor.**
 
--keepclassmembers class **$NativeYandexAdsBridge {
-    @android.webkit.JavascriptInterface <methods>;
-}
-
--keepclassmembers class **$AssetCacheManager {
-    @android.webkit.JavascriptInterface <methods>;
-}
-
-# Rules for Yandex Mobile Ads SDK
+# Defense for  Yandex Mobile Ads SDK and its dependencies
 -keep class com.yandex.mobile.ads.** { *; }
+-keep class com.monetization.ads.** { *; }
 -dontwarn com.yandex.mobile.ads.**
+-dontwarn com.monetization.ads.**
+
+# Defense for AppCompat / WebView dialogues for valid work of HTML <select>
+-keep class androidx.appcompat.app.** { *; }
+-keep class androidx.appcompat.widget.** { *; }
