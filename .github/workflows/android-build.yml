@@ -16,6 +16,11 @@ jobs:
   build:
     name: Build Android
     runs-on: ubuntu-latest
+    env:
+      KEY_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 || secrets.KEYSTORE_BASE64 }}
+      KEY_STORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || secrets.KEYSTORE_PASSWORD }}
+      KEY_ALIAS_VAL: ${{ secrets.ANDROID_KEY_ALIAS || secrets.KEY_ALIAS }}
+      KEY_PASS_VAL: ${{ secrets.ANDROID_KEY_PASSWORD || secrets.KEY_PASSWORD }}
 
     steps:
       - name: 📥 Получение кода
@@ -39,24 +44,29 @@ jobs:
         run: npx cap sync android
 
       - name: 🔑 Подготовка релизного Keystore
-        if: ${{ inputs.build_type == 'release' && secrets.KEYSTORE_BASE64 != '' }}
+        id: keystore_check
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
+          if [ -n "$KEY_B64" ]; then
+            echo "$KEY_B64" | base64 -d > android/app/release.keystore
+            echo "has_keystore=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_keystore=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: 🔨 Сборка Release (APK и AAB)
-        if: ${{ inputs.build_type == 'release' && secrets.KEYSTORE_BASE64 != '' }}
+        if: ${{ inputs.build_type == 'release' && steps.keystore_check.outputs.has_keystore == 'true' }}
         working-directory: ./android
         env:
           KEYSTORE_FILE: release.keystore
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEYSTORE_PASSWORD: ${{ env.KEY_STORE_PASS }}
+          KEY_ALIAS: ${{ env.KEY_ALIAS_VAL }}
+          KEY_PASSWORD: ${{ env.KEY_PASS_VAL }}
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease bundleRelease --no-daemon
 
       - name: 🔨 Сборка Debug (Fallback / Тест)
-        if: ${{ inputs.build_type == 'debug' || secrets.KEYSTORE_BASE64 == '' }}
+        if: ${{ inputs.build_type == 'debug' || steps.keystore_check.outputs.has_keystore != 'true' }}
         working-directory: ./android
         run: |
           chmod +x gradlew
@@ -71,8 +81,8 @@ jobs:
             android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
-      - name: 📤 Загрузка готового AAB (для сторов)
-        if: ${{ inputs.build_type == 'release' && secrets.KEYSTORE_BASE64 != '' }}
+      - name: 📤 Загрузка готового AAB (для Google Play)
+        if: ${{ inputs.build_type == 'release' && steps.keystore_check.outputs.has_keystore == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: app-bundle-aab
