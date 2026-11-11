@@ -1,25 +1,31 @@
-# Add project specific ProGuard rules here.
+# Отключаем агрессивный проход оптимизации регистров
+-dontoptimize
+
+# Сохраняем метаданные аннотаций, JS-интерфейсы и сигнатуры
 -keepattributes *Annotation*,JavascriptInterface,Signature,InnerClasses,EnclosingMethod
 
-# Save classes of our app (both prod and dev) and JS-bridge
+# Сохраняем классы приложения и нативные мосты
 -keep class io.github.synthwave.defense.** { *; }
--keepclassmembers class io.github.synthwave.defense.** {
-    @android.webkit.JavascriptInterface <methods>;
-}
 -keepclassmembers class * {
     @android.webkit.JavascriptInterface <methods>;
 }
 
-# Capacitor Defense
+# Защита Capacitor и плагинов (включая FilesystemPlugin, вызвавший VerifyError)
 -keep class com.getcapacitor.** { *; }
+-keep class com.capacitorjs.** { *; }
+-keep class io.ionic.** { *; }
 -dontwarn com.getcapacitor.**
+-dontwarn com.capacitorjs.**
+-dontwarn io.ionic.**
 
-# Defense for  Yandex Mobile Ads SDK and its dependencies
+# Защита Kotlin Coroutines (предотвращает повреждение регистров корутин)
+-keep class kotlin.** { *; }
+-keep class kotlinx.coroutines.** { *; }
+-dontwarn kotlin.**
+-dontwarn kotlinx.coroutines.**
+
+# Защита SDK РСЯ (Yandex Mobile Ads)
 -keep class com.yandex.mobile.ads.** { *; }
 -keep class com.monetization.ads.** { *; }
 -dontwarn com.yandex.mobile.ads.**
 -dontwarn com.monetization.ads.**
-
-# Defense for AppCompat / WebView dialogues for valid work of HTML <select>
--keep class androidx.appcompat.app.** { *; }
--keep class androidx.appcompat.widget.** { *; }

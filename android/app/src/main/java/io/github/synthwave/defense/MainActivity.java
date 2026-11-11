@@ -1,30 +1,12 @@
 package io.github.synthwave.defense;
 
-import android.app.AlertDialog;
-import android.content.ClipData;
-import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.graphics.Color;
-import android.graphics.Typeface;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
-import android.util.TypedValue;
-import android.view.Gravity;
-import android.view.MotionEvent;
-import android.view.View;
-import android.webkit.ConsoleMessage;
 import android.webkit.JavascriptInterface;
-import android.webkit.RenderProcessGoneDetail;
-import android.webkit.WebChromeClient;
 import android.webkit.WebView;
-import android.widget.FrameLayout;
-import android.widget.LinearLayout;
-import android.widget.ScrollView;
-import android.widget.TextView;
-import android.widget.Toast;
 import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -56,39 +38,30 @@ public class MainActivity extends BridgeActivity {
     private static final String KEY_CURR_LOG = "curr_session_log";
     private static final String KEY_LAST_CRASH = "last_crash_stack";
     private static final String KEY_LAST_EXIT = "last_exit_reason";
-    private static final String KEY_CLEAN_EXIT = "session_clean_exit";
 
-    private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final StringBuilder liveSessionLog = new StringBuilder();
     private long bootStartTimeMs = 0L;
-    private boolean isDiagShowing = false;
     private NativeYandexAdsBridge adsBridge;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         bootStartTimeMs = System.currentTimeMillis();
-        installGlobalCrashInterceptor();
+        installSilentCrashInterceptor();
 
         SharedPreferences dp = getSharedPreferences(DIAG_PREFS, Context.MODE_PRIVATE);
         String prevCurrLog = dp.getString(KEY_CURR_LOG, "");
-        String lastCrash = dp.getString(KEY_LAST_CRASH, "");
         String lastExit = dp.getString(KEY_LAST_EXIT, "NONE");
-        boolean prevClean = dp.getBoolean(KEY_CLEAN_EXIT, true);
 
         if (prevCurrLog != null && !prevCurrLog.isEmpty()) {
             dp.edit().putString(KEY_PREV_LOG, prevCurrLog).commit();
         }
 
-        boolean hadCrash = (lastCrash != null && !lastCrash.isEmpty());
-        boolean hadEarlyCrashExit = !prevClean && (lastExit.contains("CRASH") || lastExit.contains("INTERCEPTED") || lastExit.contains("RENDER_GONE"));
-
         dp.edit()
             .putString(KEY_CURR_LOG, "")
             .putString(KEY_LAST_EXIT, "RUNNING")
-            .putBoolean(KEY_CLEAN_EXIT, false)
             .commit();
 
-        recordStep("onCreate start | prevExit=" + lastExit + " | hadCrash=" + hadCrash);
+        recordStep("onCreate start | prevExit=" + lastExit);
 
         super.onCreate(savedInstanceState);
         recordStep("super.onCreate completed");
@@ -107,18 +80,9 @@ public class MainActivity extends BridgeActivity {
         } catch (Throwable e) {
             recordStep("ERROR attaching bridges: " + Log.getStackTraceString(e));
         }
-
-        // Невидимая зона в левом верхнем углу (удержание 2 сек открывает лог в любой момент)
-        attachInvisibleSecretLogTrigger();
-
-        // Если прошлый запуск упал или был перехвачен — сразу открываем отчет поверх игры
-        if (hadCrash || hadEarlyCrashExit) {
-            recordStep("Previous session had crash/intercept -> auto-opening diagnostic report");
-            mainHandler.postDelayed(() -> showDiagnosticDialog(true), 300);
-        }
     }
 
-    private void installGlobalCrashInterceptor() {
+    private void installSilentCrashInterceptor() {
         final Thread.UncaughtExceptionHandler defaultHandler = Thread.getDefaultUncaughtExceptionHandler();
         Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
             try {
@@ -126,6 +90,7 @@ public class MainActivity extends BridgeActivity {
                 String tName = thread != null ? thread.getName() : "unknown";
                 boolean isMainThread = (thread == Looper.getMainLooper().getThread());
 
+                // Поглощаем сбои сторонних фоновых потоков
                 if (!isMainThread) {
                     recordStep("ABSORBED BG THREAD EXCEPTION [" + tName + "]: "
                         + throwable.getClass().getSimpleName() + " - " + throwable.getMessage());
@@ -140,7 +105,6 @@ public class MainActivity extends BridgeActivity {
                 dp.edit()
                     .putString(KEY_LAST_CRASH, header)
                     .putString(KEY_LAST_EXIT, "JAVA_CRASH: " + throwable.getClass().getSimpleName())
-                    .putBoolean(KEY_CLEAN_EXIT, false)
                     .commit();
 
                 writeLogFileToDisk();
@@ -190,7 +154,7 @@ public class MainActivity extends BridgeActivity {
 
         String crashStack = dp.getString(KEY_LAST_CRASH, "");
         if (crashStack != null && !crashStack.isEmpty()) {
-            sb.append("--- LAST CRASH / INTERCEPT STACK ---\n");
+            sb.append("--- LAST CRASH STACK ---\n");
             sb.append(crashStack).append("\n\n");
         }
 
@@ -205,163 +169,37 @@ public class MainActivity extends BridgeActivity {
         return sb.toString();
     }
 
-    // Полностью прозрачная зона 65x65dp в левом верхнем углу:
-    // Обычные клики пропускает сквозь себя, а при удержании пальца 2 секунды открывает окно логов!
-    private void attachInvisibleSecretLogTrigger() {
-        runOnUiThread(() -> {
-            try {
-                FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(dpToPx(65), dpToPx(65));
-                lp.gravity = Gravity.TOP | Gravity.START;
-                lp.topMargin = dpToPx(24);
-                lp.leftMargin = dpToPx(0);
-
-                View secretZone = new View(this);
-                secretZone.setBackgroundColor(Color.TRANSPARENT);
-
-                final Runnable openLogRunnable = () -> showDiagnosticDialog(false);
-
-                secretZone.setOnTouchListener((v, event) -> {
-                    int action = event.getActionMasked();
-                    if (action == MotionEvent.ACTION_DOWN) {
-                        mainHandler.postDelayed(openLogRunnable, 2000);
-                    } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
-                        mainHandler.removeCallbacks(openLogRunnable);
-                    }
-                    return true;
-                });
-
-                addContentView(secretZone, lp);
-            } catch (Throwable e) {
-                recordStep("Failed to attach secret trigger: " + e.getMessage());
-            }
-        });
-    }
-
-    private int dpToPx(int dp) {
-        return Math.round(dp * getResources().getDisplayMetrics().density);
-    }
-
-    private void showDiagnosticDialog(final boolean isIntercepted) {
-        runOnUiThread(() -> {
-            if (isFinishing() || isDestroyed() || isDiagShowing) return;
-            isDiagShowing = true;
-
-            final SharedPreferences dp = getSharedPreferences(DIAG_PREFS, Context.MODE_PRIVATE);
-            final String reportText = buildFullDiagnosticText(dp);
-
-            LinearLayout root = new LinearLayout(this);
-            root.setOrientation(LinearLayout.VERTICAL);
-            root.setBackgroundColor(Color.parseColor("#0b0f19"));
-            int pad = dpToPx(14);
-            root.setPadding(pad, pad, pad, pad);
-
-            TextView titleView = new TextView(this);
-            titleView.setText(isIntercepted ? "⚠️ Перехвачен сбой / закрытие" : "🐞 Фоновый лог диагностики");
-            titleView.setTextColor(Color.parseColor("#00e5ff"));
-            titleView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-            titleView.setTypeface(Typeface.DEFAULT_BOLD);
-            root.addView(titleView);
-
-            TextView subView = new TextView(this);
-            subView.setText("Файл: Android/data/" + getPackageName() + "/files/crash_log.txt");
-            subView.setTextColor(Color.parseColor("#94a3b8"));
-            subView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-            subView.setPadding(0, dpToPx(4), 0, dpToPx(8));
-            root.addView(subView);
-
-            ScrollView scroll = new ScrollView(this);
-            LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dpToPx(340)
-            );
-            scroll.setLayoutParams(scrollLp);
-            scroll.setBackgroundColor(Color.parseColor("#05070c"));
-
-            final TextView logTv = new TextView(this);
-            logTv.setText(reportText);
-            logTv.setTextColor(Color.parseColor("#e2e8f0"));
-            logTv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10.5f);
-            logTv.setTypeface(Typeface.MONOSPACE);
-            logTv.setTextIsSelectable(true);
-            int innerPad = dpToPx(8);
-            logTv.setPadding(innerPad, innerPad, innerPad, innerPad);
-            scroll.addView(logTv);
-            root.addView(scroll);
-
-            AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            builder.setView(root);
-            builder.setCancelable(false);
-            builder.setPositiveButton("📋 Скопировать", null);
-            builder.setNeutralButton("🧹 Очистить", null);
-            builder.setNegativeButton("▶️ Закрыть окно", null);
-
-            final AlertDialog dialog = builder.create();
-            dialog.show();
-
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-                try {
-                    String latest = buildFullDiagnosticText(dp);
-                    logTv.setText(latest);
-                    ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-                    if (cm != null) {
-                        cm.setPrimaryClip(ClipData.newPlainText("SynthWaveProdLog", latest));
-                    }
-                    Toast.makeText(this, "Скопировано в буфер обмена!", Toast.LENGTH_SHORT).show();
-                } catch (Throwable e) {
-                    Toast.makeText(this, "Ошибка: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                }
-            });
-
-            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(v -> {
-                dp.edit().remove(KEY_LAST_CRASH).remove(KEY_PREV_LOG).putBoolean(KEY_CLEAN_EXIT, true).commit();
-                logTv.setText(buildFullDiagnosticText(dp));
-                Toast.makeText(this, "Архив ошибок очищен", Toast.LENGTH_SHORT).show();
-            });
-
-            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener(v -> {
-                isDiagShowing = false;
-                dp.edit().putString(KEY_LAST_CRASH, "").putBoolean(KEY_CLEAN_EXIT, true).commit();
-                dialog.dismiss();
-            });
-        });
-    }
-
-    // Блокируем ЛЮБУЮ попытку программно закрыть или свернуть Activity (и на старте, и при клике на язык!)
-    private boolean interceptCloseCall(String methodName) {
+    private void logCloseCall(String methodName) {
         long elapsed = System.currentTimeMillis() - bootStartTimeMs;
-        String stack = Log.getStackTraceString(new Throwable("Stack trace of " + methodName));
-        recordStep("INTERCEPTED " + methodName + " at +" + elapsed + "ms!\n" + stack);
+        String stack = Log.getStackTraceString(new Throwable("Caller of " + methodName));
+        recordStep("CALLED " + methodName + " at +" + elapsed + "ms:\n" + stack);
 
         SharedPreferences dp = getSharedPreferences(DIAG_PREFS, Context.MODE_PRIVATE);
-        dp.edit()
-            .putString(KEY_LAST_EXIT, "INTERCEPTED_" + methodName + " at +" + elapsed + "ms")
-            .putString(KEY_LAST_CRASH, "Blocked call to " + methodName + ":\n" + stack)
-            .commit();
-
-        showDiagnosticDialog(true);
-        return true;
+        dp.edit().putString(KEY_LAST_EXIT, methodName + " at +" + elapsed + "ms").commit();
+        writeLogFileToDisk();
     }
 
     @Override
     public void finish() {
-        if (interceptCloseCall("finish()")) return;
+        logCloseCall("finish()");
         super.finish();
     }
 
     @Override
     public void finishAffinity() {
-        if (interceptCloseCall("finishAffinity()")) return;
+        logCloseCall("finishAffinity()");
         super.finishAffinity();
     }
 
     @Override
     public void finishAndRemoveTask() {
-        if (interceptCloseCall("finishAndRemoveTask()")) return;
+        logCloseCall("finishAndRemoveTask()");
         super.finishAndRemoveTask();
     }
 
     @Override
     public boolean moveTaskToBack(boolean nonRoot) {
-        if (interceptCloseCall("moveTaskToBack(" + nonRoot + ")")) return false;
+        logCloseCall("moveTaskToBack(" + nonRoot + ")");
         return super.moveTaskToBack(nonRoot);
     }
 
@@ -395,7 +233,6 @@ public class MainActivity extends BridgeActivity {
         @JavascriptInterface
         public void confirmCacheValid() {
             recordStep("[JS] confirmCacheValid()");
-            getSharedPreferences(DIAG_PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_CLEAN_EXIT, true).commit();
         }
 
         @Keep
