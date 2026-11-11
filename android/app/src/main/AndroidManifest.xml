@@ -18,7 +18,6 @@
         <provider
             android:name="com.yandex.mobile.ads.core.initializer.MobileAdsInitializeProvider"
             android:authorities="${applicationId}.MobileAdsInitializeProvider"
-            android:exported="false"
             tools:node="remove" />
 
         <activity

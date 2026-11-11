@@ -2,7 +2,6 @@ package io.github.synthwave.defense;
 
 import android.content.Context;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.webkit.JavascriptInterface;
@@ -25,10 +24,11 @@ import org.json.JSONObject;
 
 public class MainActivity extends BridgeActivity {
     private static final String TAG = "SynthWaveMainActivity";
-    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private long bootStartTimeMs = 0L;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        bootStartTimeMs = System.currentTimeMillis();
         installCrashGuard();
         super.onCreate(savedInstanceState);
 
@@ -36,7 +36,7 @@ public class MainActivity extends BridgeActivity {
             if (this.bridge != null && this.bridge.getWebView() != null) {
                 this.bridge.getWebView().addJavascriptInterface(new AssetCacheManager(), "AssetCacheManager");
                 this.bridge.getWebView().addJavascriptInterface(new NativeYandexAdsBridge(this), "NativeYandexAdsBridge");
-                Log.d(TAG, "JS Bridges attached successfully");
+                Log.d(TAG, "JS Bridges registered successfully");
             }
         } catch (Throwable e) {
             Log.e(TAG, "Error attaching JS Bridges", e);
@@ -50,10 +50,11 @@ public class MainActivity extends BridgeActivity {
                 String tName = thread != null ? thread.getName() : "unknown";
                 boolean isMainThread = (thread == Looper.getMainLooper().getThread());
 
-                // Как и на Dev: любые ошибки в фоновых потоках (SDK рекламы, сеть, аналитика)
-                // поглощаем без закрытия игры!
+                // Точно как в финальном фиксе на Dev:
+                // ЛЮБОЙ сбой в любом фоновом потоке (YandexAds, Coroutines, OkHttp, ExoPlayer и др.)
+                // поглощаем и НЕ передаем в defaultHandler, чтобы ОС не убивала процесс игры!
                 if (!isMainThread) {
-                    Log.w(TAG, "Suppressed background thread exception on [" + tName + "]: " + throwable.getMessage());
+                    Log.w(TAG, "Absorbed non-main thread crash on [" + tName + "]: " + throwable.getMessage(), throwable);
                     return;
                 }
             } catch (Throwable ignored) {}
@@ -62,6 +63,40 @@ public class MainActivity extends BridgeActivity {
                 defaultHandler.uncaughtException(thread, throwable);
             }
         });
+    }
+
+    // Защита от автоматического сворачивания/закрытия на холодном старте (первые 6 секунд)
+    private boolean isEarlyBootCloseBlocked(String methodName) {
+        long elapsed = System.currentTimeMillis() - bootStartTimeMs;
+        if (elapsed < 6000) {
+            Log.w(TAG, "Blocked automatic " + methodName + " at +" + elapsed + "ms during cold boot");
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public void finish() {
+        if (isEarlyBootCloseBlocked("finish()")) return;
+        super.finish();
+    }
+
+    @Override
+    public void finishAffinity() {
+        if (isEarlyBootCloseBlocked("finishAffinity()")) return;
+        super.finishAffinity();
+    }
+
+    @Override
+    public void finishAndRemoveTask() {
+        if (isEarlyBootCloseBlocked("finishAndRemoveTask()")) return;
+        super.finishAndRemoveTask();
+    }
+
+    @Override
+    public boolean moveTaskToBack(boolean nonRoot) {
+        if (isEarlyBootCloseBlocked("moveTaskToBack()")) return false;
+        return super.moveTaskToBack(nonRoot);
     }
 
     @Keep
@@ -125,7 +160,7 @@ public class MainActivity extends BridgeActivity {
         }
 
         private void runJs(final String jsCode) {
-            mainHandler.post(() -> {
+            runOnUiThread(() -> {
                 try {
                     if (MainActivity.this.bridge != null && MainActivity.this.bridge.getWebView() != null) {
                         MainActivity.this.bridge.getWebView().evaluateJavascript(jsCode, null);
@@ -139,31 +174,28 @@ public class MainActivity extends BridgeActivity {
         @Keep
         @JavascriptInterface
         public void initialize(final String defaultAdUnitId) {
-            // Запускаем инициализацию РСЯ с небольшой задержкой (1.5 сек), чтобы WebView
-            // спокойно завершил холодный старт и загрузку экрана без пиковой нагрузки
-            mainHandler.postDelayed(() -> {
+            runOnUiThread(() -> {
                 try {
-                    if (isFinishing() || isDestroyed()) return;
                     MobileAds.initialize(context.getApplicationContext(), new InitializationListener() {
                         @Override
                         public void onInitializationCompleted() {
-                            mainHandler.post(() -> {
-                                try {
-                                    isSdkInitialized = true;
-                                    setupLoader();
-                                    if (defaultAdUnitId != null && !defaultAdUnitId.isEmpty()) {
-                                        loadRewardedAd(defaultAdUnitId);
-                                    }
-                                } catch (Throwable t) {
-                                    Log.e(TAG, "Error in onInitializationCompleted", t);
+                            try {
+                                isSdkInitialized = true;
+                                setupLoader();
+                                if (defaultAdUnitId != null && !defaultAdUnitId.isEmpty()) {
+                                    loadRewardedAd(defaultAdUnitId);
                                 }
-                            });
+                            } catch (Throwable t) {
+                                Log.e(TAG, "Error in onInitializationCompleted", t);
+                            }
                         }
                     });
                 } catch (Throwable t) {
                     Log.e(TAG, "Error in MobileAds.initialize", t);
+                    String msg = t.getMessage() != null ? t.getMessage().replace("'", "\\'") : "Init error";
+                    runJs("window.onYandexAdFailedToLoad && window.onYandexAdFailedToLoad('Native init error: " + msg + "');");
                 }
-            }, 1500);
+            });
         }
 
         private void setupLoader() {
@@ -233,16 +265,22 @@ public class MainActivity extends BridgeActivity {
         @Keep
         @JavascriptInterface
         public void loadRewardedAd(final String adUnitId) {
-            mainHandler.post(() -> {
+            runOnUiThread(() -> {
                 try {
-                    if (!isSdkInitialized || isAdLoading || rewardedAd != null) return;
+                    if (!isSdkInitialized) return;
+                    if (isAdLoading || rewardedAd != null) return;
                     setupLoader();
-                    if (rewardedAdLoader == null) return;
+                    if (rewardedAdLoader == null) {
+                        runJs("window.onYandexAdFailedToLoad && window.onYandexAdFailedToLoad('Loader unavailable');");
+                        return;
+                    }
                     isAdLoading = true;
                     AdRequestConfiguration config = new AdRequestConfiguration.Builder(adUnitId).build();
                     rewardedAdLoader.loadAd(config);
                 } catch (Throwable t) {
                     isAdLoading = false;
+                    String msg = t.getMessage() != null ? t.getMessage().replace("'", "\\'") : "Load exception";
+                    runJs("window.onYandexAdFailedToLoad && window.onYandexAdFailedToLoad('" + msg + "');");
                 }
             });
         }
@@ -256,7 +294,7 @@ public class MainActivity extends BridgeActivity {
         @Keep
         @JavascriptInterface
         public void showRewardedAd() {
-            mainHandler.post(() -> {
+            runOnUiThread(() -> {
                 try {
                     if (rewardedAd != null) {
                         rewardedAd.show(MainActivity.this);
@@ -265,7 +303,8 @@ public class MainActivity extends BridgeActivity {
                     }
                 } catch (Throwable t) {
                     rewardedAd = null;
-                    runJs("window.onYandexAdFailedToShow && window.onYandexAdFailedToShow('Show exception');");
+                    String msg = t.getMessage() != null ? t.getMessage().replace("'", "\\'") : "Show exception";
+                    runJs("window.onYandexAdFailedToShow && window.onYandexAdFailedToShow('" + msg + "');");
                 }
             });
         }
