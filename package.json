@@ -1,10 +1,11 @@
 {
   "name": "synth-wave-defense",
-  "version": "1.0.0",
+  "version": "1.38",
   "description": "Synth Wave Defense Production",
   "main": "index.js",
   "type": "commonjs",
   "scripts": {
+    "build": "node scripts/build-prod.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -12,10 +13,14 @@
   "license": "ISC",
   "dependencies": {
     "@capacitor/android": "^8.5.3",
+    "@capacitor/app": "^8.1.2",
     "@capacitor/cli": "^8.5.3",
     "@capacitor/core": "^8.5.3",
-    "@capacitor/filesystem": "^8.0.0",
-    "@capacitor/network": "^8.0.0"
+    "@capacitor/filesystem": "^8.1.4",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/network": "^8.0.1",
+    "@capacitor/preferences": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.4"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5"
