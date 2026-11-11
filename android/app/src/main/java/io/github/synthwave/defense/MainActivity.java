@@ -90,7 +90,7 @@ public class MainActivity extends BridgeActivity {
                 String tName = thread != null ? thread.getName() : "unknown";
                 boolean isMainThread = (thread == Looper.getMainLooper().getThread());
 
-                // Поглощаем сбои сторонних фоновых потоков
+                // Поглощаем любые сбои фоновых потоков без закрытия игры
                 if (!isMainThread) {
                     recordStep("ABSORBED BG THREAD EXCEPTION [" + tName + "]: "
                         + throwable.getClass().getSimpleName() + " - " + throwable.getMessage());
@@ -169,40 +169,6 @@ public class MainActivity extends BridgeActivity {
         return sb.toString();
     }
 
-    private void logCloseCall(String methodName) {
-        long elapsed = System.currentTimeMillis() - bootStartTimeMs;
-        String stack = Log.getStackTraceString(new Throwable("Caller of " + methodName));
-        recordStep("CALLED " + methodName + " at +" + elapsed + "ms:\n" + stack);
-
-        SharedPreferences dp = getSharedPreferences(DIAG_PREFS, Context.MODE_PRIVATE);
-        dp.edit().putString(KEY_LAST_EXIT, methodName + " at +" + elapsed + "ms").commit();
-        writeLogFileToDisk();
-    }
-
-    @Override
-    public void finish() {
-        logCloseCall("finish()");
-        super.finish();
-    }
-
-    @Override
-    public void finishAffinity() {
-        logCloseCall("finishAffinity()");
-        super.finishAffinity();
-    }
-
-    @Override
-    public void finishAndRemoveTask() {
-        logCloseCall("finishAndRemoveTask()");
-        super.finishAndRemoveTask();
-    }
-
-    @Override
-    public boolean moveTaskToBack(boolean nonRoot) {
-        logCloseCall("moveTaskToBack(" + nonRoot + ")");
-        return super.moveTaskToBack(nonRoot);
-    }
-
     @Override
     public void onPause() {
         recordStep("Lifecycle: onPause()");
@@ -218,6 +184,11 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onDestroy() {
         recordStep("Lifecycle: onDestroy() | isFinishing=" + isFinishing());
+        SharedPreferences dp = getSharedPreferences(DIAG_PREFS, Context.MODE_PRIVATE);
+        if ("RUNNING".equals(dp.getString(KEY_LAST_EXIT, "RUNNING"))) {
+            dp.edit().putString(KEY_LAST_EXIT, "onDestroy (isFinishing=" + isFinishing() + ")").commit();
+        }
+        writeLogFileToDisk();
         super.onDestroy();
     }
 
@@ -274,6 +245,7 @@ public class MainActivity extends BridgeActivity {
         private RewardedAdLoader rewardedAdLoader;
         private RewardedAd rewardedAd;
         private boolean isAdLoading = false;
+        private long lastLoadStartMs = 0L;
         private boolean isSdkInitialized = false;
         private boolean isInitializing = false;
         private String pendingAdUnitId = "demo-rewarded-yandex";
@@ -292,6 +264,26 @@ public class MainActivity extends BridgeActivity {
                     recordStep("YandexAds runJs error: " + e.getMessage());
                 }
             });
+        }
+
+        private void notifyJsLoaded() {
+            runJs("if(window.onYandexAdLoaded)window.onYandexAdLoaded();else if(window.onNativeAdLoaded)window.onNativeAdLoaded();");
+        }
+
+        private void notifyJsFailedToLoad(String safeDesc) {
+            runJs("if(window.onYandexAdFailedToLoad)window.onYandexAdFailedToLoad('" + safeDesc + "');else if(window.onNativeAdFailedToLoad)window.onNativeAdFailedToLoad('" + safeDesc + "');");
+        }
+
+        private void notifyJsFailedToShow(String safeDesc) {
+            runJs("if(window.onYandexAdFailedToShow)window.onYandexAdFailedToShow('" + safeDesc + "');else if(window.onNativeAdFailedToShow)window.onNativeAdFailedToShow('" + safeDesc + "');");
+        }
+
+        private void notifyJsDismissed() {
+            runJs("if(window.onYandexAdDismissed)window.onYandexAdDismissed();else if(window.onNativeAdDismissed)window.onNativeAdDismissed();");
+        }
+
+        private void notifyJsRewarded() {
+            runJs("if(window.onYandexAdRewarded)window.onYandexAdRewarded();else if(window.onNativeAdRewarded)window.onNativeAdRewarded();");
         }
 
         @Keep
@@ -334,7 +326,7 @@ public class MainActivity extends BridgeActivity {
                     isInitializing = false;
                     recordStep("ERROR in MobileAds.initialize: " + Log.getStackTraceString(t));
                     String msg = t.getMessage() != null ? t.getMessage().replace("'", "\\'") : "Init error";
-                    runJs("window.onYandexAdFailedToLoad && window.onYandexAdFailedToLoad('Native init error: " + msg + "');");
+                    notifyJsFailedToLoad("Native init error: " + msg);
                 }
             });
         }
@@ -350,7 +342,7 @@ public class MainActivity extends BridgeActivity {
                         rewardedAd = ad;
                         isAdLoading = false;
                         attachEventListener(ad);
-                        runJs("window.onYandexAdLoaded && window.onYandexAdLoaded();");
+                        notifyJsLoaded();
                     }
 
                     @Override
@@ -359,8 +351,8 @@ public class MainActivity extends BridgeActivity {
                         isAdLoading = false;
                         String desc = adRequestError.getDescription() != null ? adRequestError.getDescription() : "Load error";
                         recordStep("YandexAds: onAdFailedToLoad (" + adRequestError.getCode() + ": " + desc + ")");
-                        String safeDescription = desc.replace("'", "\\'");
-                        runJs("window.onYandexAdFailedToLoad && window.onYandexAdFailedToLoad('" + safeDescription + "');");
+                        String safeDescription = ("[" + adRequestError.getCode() + "] " + desc).replace("'", "\\'");
+                        notifyJsFailedToLoad(safeDescription);
                     }
                 });
             } catch (Throwable t) {
@@ -380,17 +372,19 @@ public class MainActivity extends BridgeActivity {
                     @Override
                     public void onAdFailedToShow(@NonNull AdError adError) {
                         rewardedAd = null;
+                        isAdLoading = false;
                         String desc = adError.getDescription() != null ? adError.getDescription() : "Show error";
                         recordStep("YandexAds: onAdFailedToShow (" + desc + ")");
                         String safeDescription = desc.replace("'", "\\'");
-                        runJs("window.onYandexAdFailedToShow && window.onYandexAdFailedToShow('" + safeDescription + "');");
+                        notifyJsFailedToShow(safeDescription);
                     }
 
                     @Override
                     public void onAdDismissed() {
                         recordStep("YandexAds: onAdDismissed");
                         rewardedAd = null;
-                        runJs("window.onYandexAdDismissed && window.onYandexAdDismissed();");
+                        isAdLoading = false;
+                        notifyJsDismissed();
                     }
 
                     @Override
@@ -401,7 +395,7 @@ public class MainActivity extends BridgeActivity {
                     @Override
                     public void onRewarded(@NonNull Reward reward) {
                         recordStep("YandexAds: onRewarded!");
-                        runJs("window.onYandexAdRewarded && window.onYandexAdRewarded();");
+                        notifyJsRewarded();
                     }
 
                     @Override
@@ -417,7 +411,7 @@ public class MainActivity extends BridgeActivity {
         public void loadRewardedAd(final String adUnitId) {
             final String unitToLoad = (adUnitId != null && !adUnitId.isEmpty()) ? adUnitId : pendingAdUnitId;
             pendingAdUnitId = unitToLoad;
-            recordStep("YandexAds.loadRewardedAd called for: " + unitToLoad + " | isSdkInit=" + isSdkInitialized);
+            recordStep("YandexAds.loadRewardedAd called for: " + unitToLoad + " | isSdkInit=" + isSdkInitialized + " | isAdLoading=" + isAdLoading + " | hasAd=" + (rewardedAd != null));
 
             runOnUiThread(() -> {
                 try {
@@ -426,21 +420,31 @@ public class MainActivity extends BridgeActivity {
                         initialize(unitToLoad);
                         return;
                     }
-                    if (isAdLoading) {
-                        recordStep("loadRewardedAd: already loading, skipping duplicate call");
-                        return;
-                    }
+
+                    // Если реклама уже загружена в памяти — сразу подтверждаем готовность в JS!
                     if (rewardedAd != null) {
-                        recordStep("loadRewardedAd: ad already loaded, notifying JS");
-                        runJs("window.onYandexAdLoaded && window.onYandexAdLoaded();");
+                        recordStep("loadRewardedAd: ad already ready in memory -> immediately notifying JS");
+                        isAdLoading = false;
+                        notifyJsLoaded();
                         return;
                     }
+
+                    // Защита от залипания флага загрузки (если прошло >12 сек — сбрасываем)
+                    long now = System.currentTimeMillis();
+                    if (isAdLoading && (now - lastLoadStartMs < 12000L)) {
+                        recordStep("loadRewardedAd: already loading (<12s), waiting...");
+                        return;
+                    }
+
                     setupLoader();
                     if (rewardedAdLoader == null) {
-                        runJs("window.onYandexAdFailedToLoad && window.onYandexAdFailedToLoad('Loader unavailable');");
+                        isAdLoading = false;
+                        notifyJsFailedToLoad("Loader unavailable");
                         return;
                     }
+
                     isAdLoading = true;
+                    lastLoadStartMs = now;
                     recordStep("YandexAds: requesting ad from server (" + unitToLoad + ")...");
                     AdRequestConfiguration config = new AdRequestConfiguration.Builder(unitToLoad).build();
                     rewardedAdLoader.loadAd(config);
@@ -448,7 +452,7 @@ public class MainActivity extends BridgeActivity {
                     isAdLoading = false;
                     recordStep("ERROR in loadRewardedAd: " + Log.getStackTraceString(t));
                     String msg = t.getMessage() != null ? t.getMessage().replace("'", "\\'") : "Load exception";
-                    runJs("window.onYandexAdFailedToLoad && window.onYandexAdFailedToLoad('" + msg + "');");
+                    notifyJsFailedToLoad(msg);
                 }
             });
         }
@@ -466,17 +470,22 @@ public class MainActivity extends BridgeActivity {
             runOnUiThread(() -> {
                 try {
                     if (rewardedAd != null) {
-                        rewardedAd.show(MainActivity.this);
+                        RewardedAd adToShow = rewardedAd;
+                        // Сразу освобождаем слот, чтобы после просмотра ничто не блокировало новую загрузку
+                        rewardedAd = null;
+                        isAdLoading = false;
+                        adToShow.show(MainActivity.this);
                     } else {
                         recordStep("showRewardedAd: ad is null, triggering reload");
-                        runJs("window.onYandexAdFailedToShow && window.onYandexAdFailedToShow('Ad not ready');");
+                        notifyJsFailedToShow("Ad not ready");
                         loadRewardedAd(pendingAdUnitId);
                     }
                 } catch (Throwable t) {
                     rewardedAd = null;
+                    isAdLoading = false;
                     recordStep("ERROR in showRewardedAd: " + Log.getStackTraceString(t));
                     String msg = t.getMessage() != null ? t.getMessage().replace("'", "\\'") : "Show exception";
-                    runJs("window.onYandexAdFailedToShow && window.onYandexAdFailedToShow('" + msg + "');");
+                    notifyJsFailedToShow(msg);
                 }
             });
         }
