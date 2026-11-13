@@ -1,11 +1,13 @@
 {
   "name": "synth-wave-defense",
-  "version": "1.38",
+  "version": "1.38.32",
   "description": "Synth Wave Defense Production",
   "main": "index.js",
   "type": "commonjs",
   "scripts": {
     "build": "node scripts/build-prod.js",
+    "release": "node scripts/sync-and-release.js",
+    "release:major": "node scripts/sync-and-release.js --major",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

@@ -5,7 +5,7 @@
 <head>
   <meta charset="UTF-8">
   <script>
-  window.APP_VERSION = '1.38.29';
+  window.APP_VERSION = '1.38.32';
   window.__APP_STAGE__ = 'production';
   if (false && window.location.hostname !== 'synth-wave-defense.github.io') {
     const s = document.createElement("script");
@@ -23,7 +23,7 @@
 
 <body>
 
-<!-- Полноэкранный загрузочный экран при холодном старте -->
+<!-- Полноэкранный загрузочный экран при холодном старте. -->
 <!-- [HTM.A] -->
 <div id="initialLoadingScreen" style="
   position: fixed;
@@ -1350,11 +1350,11 @@ function logLocally(info) {
           </span>
         </button>
         <!-- [HTM.BY] -->
-        <button class="bp-action-btn bp-btn-buy-tier" onclick="buyBpTierWithDiamonds()">
-          <span data-i18n="buy_tier">BUY TIER (30</span>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" style="flex:none; margin-left:2px;"><polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)"/><polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/></svg>
-          <span>)</span>
-        </button>
+		<button id="bpBuyTierBtn" class="bp-action-btn bp-btn-buy-tier" onclick="buyBpTierWithDiamonds()">
+			<span data-i18n="buy_tier">BUY TIER (30</span>
+			<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" style="flex:none; margin-left:2px;"><polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)"/><polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/></svg>
+			<span>)</span>
+		</button>
       </div>
       <div class="bp-dev-controls hidden" id="bpDevControls">
         <!-- [HTM.BZ] -->
