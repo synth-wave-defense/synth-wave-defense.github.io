@@ -5,13 +5,13 @@
 <head>
   <meta charset="UTF-8">
   <script>
-  window.APP_VERSION = '1.38.32';
-  window.__APP_STAGE__ = 'production';
-  if (false && window.location.hostname !== 'synth-wave-defense.github.io') {
-    const s = document.createElement("script");
-    s.src = "dev_gate.js";
-    document.head.appendChild(s);
-  }
+    window.APP_VERSION = '1.38.34';
+    window.__APP_STAGE__ = 'production';
+    if (false && window.location.hostname !== 'synth-wave-defense.github.io') {
+      const s = document.createElement("script");
+      s.src = "dev_gate.js";
+      document.head.appendChild(s);
+    }
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#03050d">
@@ -322,7 +322,7 @@ function logLocally(info) {
       <button class="hud-gear-btn" id="hudSettingsBtn" onclick="handleHudSettingsClick()" title="Settings & Pause">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="hud-gear-svg">
           <circle cx="12" cy="12" r="3.2"></circle>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0-2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
         </svg>
       </button>
     </div>
@@ -855,77 +855,77 @@ function logLocally(info) {
           </div>
         </div>
         <!-- [HTM.AO] -->
- <button id="timeModT1Btn" class="shop-item-btn shop-btn-buy" onclick="buyShopIAP('time_mod_t1')">
- <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" stroke-linejoin="round" style="flex:none;"><polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)"/><polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/></svg>
- <span>50</span>
- </button>
- </div>
- 
- <div class="shop-card locked-item" id="shopPerkTimeT2Card">
- <div class="shop-card-left">
- <div class="shop-card-icon cyan-glow">
- <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--neon-primary, #00e5ff)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
- <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
- </svg>
- </div>
- <div class="shop-card-info">
- <span class="shop-card-title" data-i18n="time_mod_t2">Time Modulation Tier 2</span>
- <span class="shop-card-sub" data-i18n="time_mod_t2_sub">Unlock extreme pacing limits (0.5x, 0.75x, 1.5x, 2.0x)</span>
- </div>
- </div>
- <!-- [HTM.AP] -->
- <button id="timeModT2Btn" class="shop-item-btn locked-buy" disabled onclick="buyShopIAP('time_mod_t2')">
- <span style="display:inline-flex; align-items:center; justify-content:center; gap:3px; text-align:center; font-size:9px; line-height:1.15;">
- <svg width="12" height="12" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><path d="M 7,10 V 6 C 7,3.5 9,2 12,2 C 15,2 17,3.5 17,6 V 10"/><rect x="4" y="10" width="16" height="12" rx="3" fill="currentColor" fill-opacity="0.2"/></svg>
- <span data-i18n-html="tier_1_required">TIER 1<br>REQUIRED</span>
- </span>
- </button>
- </div>
+        <button id="timeModT1Btn" class="shop-item-btn shop-btn-buy" onclick="buyShopIAP('time_mod_t1')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" stroke-linejoin="round" style="flex:none;"><polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)"/><polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/></svg>
+          <span>50</span>
+        </button>
+      </div>
+      
+<div class="shop-card locked-item" id="shopPerkTimeT2Card">
+        <div class="shop-card-left">
+          <div class="shop-card-icon cyan-glow">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--neon-primary, #00e5ff)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+          </div>
+          <div class="shop-card-info">
+            <span class="shop-card-title" data-i18n="time_mod_t2">Time Modulation Tier 2</span>
+            <span class="shop-card-sub" data-i18n="time_mod_t2_sub">Unlock extreme pacing limits (0.5x, 0.75x, 1.5x, 2.0x)</span>
+          </div>
+        </div>
+        <!-- [HTM.AP] -->
+        <button id="timeModT2Btn" class="shop-item-btn locked-buy" disabled onclick="buyShopIAP('time_mod_t2')">
+          <span style="display:inline-flex; align-items:center; justify-content:center; gap:3px; text-align:center; font-size:9px; line-height:1.15;">
+            <svg width="12" height="12" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><path d="M 7,10 V 6 C 7,3.5 9,2 12,2 C 15,2 17,3.5 17,6 V 10"/><rect x="4" y="10" width="16" height="12" rx="3" fill="currentColor" fill-opacity="0.2"/></svg>
+            <span data-i18n-html="tier_1_required">TIER 1<br>REQUIRED</span>
+          </span>
+        </button>
+      </div>
 
       <!-- Секция 3: Обмен валюты -->
- <div class="upgrades-row-group-label" data-i18n="currency_exchange">Currency Exchange</div>
- 
- <div class="shop-card" id="synthPrismCard">
- <div class="shop-card-left">
- <div class="shop-card-icon prism-glow">
- <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d946ef" stroke-width="2.2" stroke-linejoin="round">
- <polygon points="12 2 21 12 12 22 3 12" fill="rgba(217,70,239,.3)"/>
- <polyline points="3 12 12 15 21 12"/>
- <line x1="12" y1="2" x2="12" y2="22"/>
- </svg>
- </div>
- <div class="shop-card-info">
- <span class="shop-card-title" data-i18n="synth_prism_title">Synthesize Prism</span>
- <span class="shop-card-sub" data-i18n="synth_prism_sub">Convert 20 Diamonds to +1 Prism</span>
- </div>
- </div>
- <!-- [HTM.AR] -->
- <button id="synthPrismBtn" class="shop-item-btn shop-btn-buy shop-btn-exchange" onclick="synthesizePrism()">
- <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" style="flex:none;"><polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)"/><polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/></svg>
- <span id="synthPrismCostVal" class="exchange-cost-val">20</span>
- </button>
- </div>
- 
- <div class="shop-card" id="deconstructPrismCard">
- <div class="shop-card-left">
- <div class="shop-card-icon diamond-glow">
- <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" stroke-linejoin="round">
- <polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.3)"/>
- <polyline points="2 9 12 13 22 9"/>
- <line x1="12" y1="22" x2="12" y2="13"/>
- </svg>
- </div>
- <div class="shop-card-info">
- <span class="shop-card-title" data-i18n="deconstruct_prism_title">Deconstruct Prism</span>
- <span class="shop-card-sub" data-i18n="deconstruct_prism_sub">Convert 1 Prism to +15 Diamonds</span>
- </div>
- </div>
- <!-- [HTM.AS] -->
- <button id="deconstructPrismBtn" class="shop-item-btn shop-btn-buy shop-btn-prism shop-btn-exchange" onclick="deconstructPrism()">
- <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" style="flex:none;"><polygon points="12 2 21 12 12 22 3 12" fill="rgba(217,70,239,.3)"/><polyline points="3 12 12 15 21 12"/><line x1="12" y1="22" x2="12" y2="22"/></svg>
- <span id="deconstructPrismCostVal" class="exchange-cost-val">1</span>
- </button>
- </div>
+      <div class="upgrades-row-group-label" data-i18n="currency_exchange">Currency Exchange</div>
+      
+<div class="shop-card" id="synthPrismCard">
+        <div class="shop-card-left">
+          <div class="shop-card-icon prism-glow">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d946ef" stroke-width="2.2" stroke-linejoin="round">
+              <polygon points="12 2 21 12 12 22 3 12" fill="rgba(217,70,239,.3)"/>
+              <polyline points="3 12 12 15 21 12"/>
+              <line x1="12" y1="2" x2="12" y2="22"/>
+            </svg>
+          </div>
+          <div class="shop-card-info">
+            <span class="shop-card-title" data-i18n="synth_prism_title">Synthesize Prism</span>
+            <span class="shop-card-sub" data-i18n="synth_prism_sub">Convert 20 Diamonds to +1 Prism</span>
+          </div>
+        </div>
+        <!-- [HTM.AR] -->
+        <button id="synthPrismBtn" class="shop-item-btn shop-btn-buy shop-btn-exchange" onclick="synthesizePrism()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" style="flex:none;"><polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)"/><polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/></svg>
+          <span id="synthPrismCostVal" class="exchange-cost-val">20</span>
+        </button>
+      </div>
+      
+<div class="shop-card" id="deconstructPrismCard">
+        <div class="shop-card-left">
+          <div class="shop-card-icon diamond-glow">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" stroke-linejoin="round">
+              <polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.3)"/>
+              <polyline points="2 9 12 13 22 9"/>
+              <line x1="12" y1="22" x2="12" y2="13"/>
+            </svg>
+          </div>
+          <div class="shop-card-info">
+            <span class="shop-card-title" data-i18n="deconstruct_prism_title">Deconstruct Prism</span>
+            <span class="shop-card-sub" data-i18n="deconstruct_prism_sub">Convert 1 Prism to +15 Diamonds</span>
+          </div>
+        </div>
+        <!-- [HTM.AS] -->
+        <button id="deconstructPrismBtn" class="shop-item-btn shop-btn-buy shop-btn-prism shop-btn-exchange" onclick="deconstructPrism()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" style="flex:none;"><polygon points="12 2 21 12 12 22 3 12" fill="rgba(217,70,239,.3)"/><polyline points="3 12 12 15 21 12"/><line x1="12" y1="22" x2="12" y2="22"/></svg>
+          <span id="deconstructPrismCostVal" class="exchange-cost-val">1</span>
+        </button>
+      </div>
 
       <!-- Секция 4: Витрина тем оформления -->
       <div class="upgrades-row-group-label" data-i18n="visual_themes">Visual Themes</div>
@@ -988,7 +988,7 @@ function logLocally(info) {
       </div>
     </div>
     
-    <!-- [HTM.AZ] -->
+<!-- [HTM.AZ] -->
     <button class="menu-btn-glass-capsule upgrades-back-btn" onclick="closeShopScreen()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="19" y1="12" x2="5" y2="12"></line>
@@ -1005,7 +1005,7 @@ function logLocally(info) {
       <div class="result-title" id="settingsTitle" data-i18n="paused_title">Paused</div>
     </div>
     
-    <div class="settings-combat-actions hidden" id="settingsCombatActions">
+<div class="settings-combat-actions hidden" id="settingsCombatActions">
       <!-- [HTM.BA] -->
       <button class="result-btn-pill result-btn-resume" onclick="closeSettings()">
         <svg class="resume-play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1090,26 +1090,26 @@ function logLocally(info) {
               <span class="setting-slider-val" id="sfxVolLabel">100%</span>
             </div>
             <!-- [HTM.BI] -->
-          <input type="range" class="vol-range" id="settingSfxVol" min="0" max="100" step="5" value="100"
-            oninput="setSfxVolume(this.value)">
+            <input type="range" class="vol-range" id="settingSfxVol" min="0" max="100" step="5" value="100"
+                   oninput="setSfxVolume(this.value)">
+          </div>
+          <div class="setting-row">
+            <span data-i18n="visual">Visual</span>
+            <!-- [HTM.BJ] -->
+            <select id="settingPaletteSelect" class="hud-select-dropdown" onchange="selectPalette(this.value)"></select>
+          </div>
+          <div class="setting-row">
+            <span data-i18n="language">Language</span>
+            <select id="settingLangSelect" class="hud-select-dropdown" onchange="setLanguage(this.value)"></select>
+          </div>
+          <div class="setting-version-label" id="settingsVersionLabel">Version: —</div>
+          <!-- [HTM.BJM] -->
+          <button type="button" class="setting-privacy-link" id="settingsPrivacyBtn" onclick="window.open('https://synth-wave-defense.github.io/privacy.html', '_blank')">
+            <span data-i18n="privacy_policy">Privacy Policy</span>
+          </button>
         </div>
-        <div class="setting-row">
-          <span data-i18n="visual">Visual</span>
-          <!-- [HTM.BJ] -->
-          <select id="settingPaletteSelect" class="hud-select-dropdown" onchange="selectPalette(this.value)"></select>
-        </div>
-        <div class="setting-row">
-          <span data-i18n="language">Language</span>
-          <select id="settingLangSelect" class="hud-select-dropdown" onchange="setLanguage(this.value)"></select>
-        </div>
-        <div class="setting-version-label" id="settingsVersionLabel">Version: —</div>
-        <!-- [HTM.BJM] -->
-        <button type="button" class="setting-privacy-link" id="settingsPrivacyBtn" onclick="window.open('https://synth-wave-defense.github.io/privacy.html', '_blank')">
-          <span data-i18n="privacy_policy">Privacy Policy</span>
-        </button>
       </div>
     </div>
-  </div>
 
     <!-- [HTM.BK] -->
     <button class="menu-btn-glass-capsule" id="settingsBackBtn" onclick="closeSettings()"><span data-i18n="back">BACK</span></button>
@@ -1350,11 +1350,11 @@ function logLocally(info) {
           </span>
         </button>
         <!-- [HTM.BY] -->
-		<button id="bpBuyTierBtn" class="bp-action-btn bp-btn-buy-tier" onclick="buyBpTierWithDiamonds()">
-			<span data-i18n="buy_tier">BUY TIER (30</span>
-			<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" style="flex:none; margin-left:2px;"><polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)"/><polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/></svg>
-			<span>)</span>
-		</button>
+        <button id="bpBuyTierBtn" class="bp-action-btn bp-btn-buy-tier" onclick="buyBpTierWithDiamonds()">
+          <span data-i18n="buy_tier">BUY TIER (30</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" style="flex:none; margin-left:2px;"><polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)"/><polyline points="2 9 12 13 22 9"/><line x1="12" y1="22" x2="12" y2="13"/></svg>
+          <span>)</span>
+        </button>
       </div>
       <div class="bp-dev-controls hidden" id="bpDevControls">
         <!-- [HTM.BZ] -->
@@ -1486,7 +1486,7 @@ function logLocally(info) {
       </div>
     </div>
     
-    <!-- [HTM.CH] -->
+<!-- [HTM.CH] -->
     <button class="result-btn victory-claim-btn seq-in seq-d4" id="claimX2Btn" onclick="claimX2Reward()">
       <svg width="18" height="15" viewBox="0 0 16 13" fill="none" style="flex:none; margin-right:6px;"><rect x="0.8" y="0.8" width="14.4" height="11.4" rx="2.5" fill="none" stroke="#ffffff" stroke-width="1.6"/><polygon points="6,3.5 11,6.5 6,9.5" fill="#ffffff"/></svg>
       <span data-i18n="claim_x2">CLAIM x2</span>
@@ -1551,7 +1551,7 @@ function logLocally(info) {
     </div>
     <div class="result-subline seq-in seq-d1" id="defeatWaveLine">WAVE 1 OF 1 REACHED</div>
     
-    <div class="endless-rewards-box hidden" id="endlessRewardsBox" style="margin: 8px 0; text-align: center;">
+<div class="endless-rewards-box hidden" id="endlessRewardsBox" style="margin: 8px 0; text-align: center;">
       <div class="endless-record-badge hidden" id="endlessNewRecordBadge" style="font-family: 'Montserrat', sans-serif; font-size: 13px; font-weight: 900; color: #f05f9f; text-shadow: 0 0 10px #f05f9f; margin-bottom: 6px;" data-i18n="new_record">
         ★ NEW RECORD! ★
       </div>
@@ -1670,7 +1670,7 @@ window.addEventListener('blur', forcePauseForBackground);
 document.addEventListener('pause', forcePauseForBackground, false);
 window.addEventListener('pagehide', () => {
   if (typeof saveActiveBattleSnapshot === 'function') saveActiveBattleSnapshot();
-  saveGame();
+  saveGame(true);
 });
 
 document.addEventListener('backbutton', (e) => {
@@ -1719,8 +1719,13 @@ loadGame().then(() => {
   showStartScreen();
 
   // Инициализируем рекламу и предзагружаем первый тестовый видеоролик
-  if (typeof initAdsBridge === 'function') {  
-    initAdsBridge();  
+  if (typeof initAdsBridge === 'function') { 
+    initAdsBridge(); 
+  }
+
+  // Фоновая синхронизация с Firebase (если включен в FIREBASE_CONFIG)
+  if (typeof syncWithCloudSaveIfNeeded === 'function') {
+    syncWithCloudSaveIfNeeded();
   }
 
   window.__gameBooted = true;
@@ -1748,29 +1753,29 @@ loadGame().then(() => {
   <div class="tutorial-pointer hidden" id="tutorialPointer">
     <svg width="44" height="44" viewBox="-6 -6 40 40" fill="none" style="overflow: visible; filter: drop-shadow(0 0 6px var(--neon-glow, rgba(0, 229, 255, 0.9)));">
       <path d="M -3 3 A 4.5 4.5 0 0 1 3 -3" 
-            stroke="var(--neon-primary, #00e5ff)" stroke-width="2.2" stroke-linecap="round"/>
+stroke="var(--neon-primary, #00e5ff)" stroke-width="2.2" stroke-linecap="round"/>
       <path d="M 0 0 
-               L 8 8 
-               C 8.8 8.8, 9.8 8.5, 10.4 7.9 
-               C 11 7.3, 11 6.3, 10.3 5.5 
-               L 6.5 1.5 
-               C 7.5 0.5, 9 0.5, 10 1.5 
-               L 12.5 4 
-               C 13.5 3.2, 14.8 3.5, 15.5 4.5 
-               C 16.2 4, 17.5 4.3, 18 5.2 
-               C 18.5 6, 25 12.5, 25 15.5 
-               C 25 21, 20.5 24, 14 24 
-               L 3 24 
-               C 1 24, 0 22.5, 1 21 
-               C 2 19.5, 7.5 19, 9 18.5 
-               L 0 7 
-               C -1.2 5.8, -1.2 3.8, 0 2.6 
-               Z" 
-            fill="rgba(4, 8, 18, 0.92)" 
-            stroke="var(--neon-primary, #00e5ff)" 
-            stroke-width="2.2" 
-            stroke-linecap="round" 
-            stroke-linejoin="round"/>
+L 8 8 
+C 8.8 8.8, 9.8 8.5, 10.4 7.9 
+C 11 7.3, 11 6.3, 10.3 5.5 
+L 6.5 1.5 
+C 7.5 0.5, 9 0.5, 10 1.5 
+L 12.5 4 
+C 13.5 3.2, 14.8 3.5, 15.5 4.5 
+C 16.2 4, 17.5 4.3, 18 5.2 
+C 18.5 6, 25 12.5, 25 15.5 
+C 25 21, 20.5 24, 14 24 
+L 3 24 
+C 1 24, 0 22.5, 1 21 
+C 2 19.5, 7.5 19, 9 18.5 
+L 0 7 
+C -1.2 5.8, -1.2 3.8, 0 2.6 
+Z" 
+fill="rgba(4, 8, 18, 0.92)" 
+stroke="var(--neon-primary, #00e5ff)" 
+stroke-width="2.2" 
+stroke-linecap="round" 
+stroke-linejoin="round"/>
     </svg>
   </div>
   <div class="tutorial-bubble hidden" id="tutorialBubble"><span id="tutorialBubbleText"></span></div>
