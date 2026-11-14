@@ -5,7 +5,7 @@
 <head>
   <meta charset="UTF-8">
   <script>
-    window.APP_VERSION = '1.38.34';
+    window.APP_VERSION = '1.38.35';
     window.__APP_STAGE__ = 'production';
     if (false && window.location.hostname !== 'synth-wave-defense.github.io') {
       const s = document.createElement("script");
@@ -150,7 +150,7 @@
     }
   }
 
-function logLocally(info) {
+  function logLocally(info) {
     try {
       if (window.AssetCacheManager && typeof window.AssetCacheManager.logJsDiagnostic === 'function') {
         window.AssetCacheManager.logJsDiagnostic('CRASH: ' + info.message + ' @ ' + info.source + ':' + info.lineno + '\n' + (info.stack || ''));
@@ -253,7 +253,7 @@ function logLocally(info) {
 <!-- Top HUD Bar: Resource counters (diamonds, gold, base HP), level/wave indicator, and settings launcher. -->
 <div class="hud-top-bar" id="topHud">
   <div class="hud-left-group">
-    <div class="badge-half" id="hudDiamondBadge" onclick="handleDevDiamondClick()">
+    <div class="badge-half" id="hudDiamondBadge" onclick="if(typeof handleDevDiamondClick==='function') handleDevDiamondClick()">
       <div class="hud-icon" style="filter: drop-shadow(0 0 7px rgba(0,229,255,.85));">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" stroke-linejoin="round">
           <polygon points="6 3 18 3 22 9 12 22 2 9" fill="rgba(0,229,255,.25)" />
@@ -264,7 +264,7 @@ function logLocally(info) {
       <span class="stat-val-text" id="globalDiamondsVal">10</span>
     </div>
 
-    <div class="badge-half" id="hudPrismBadge" onclick="handleDevPrismClick()">
+    <div class="badge-half" id="hudPrismBadge" onclick="if(typeof handleDevPrismClick==='function') handleDevPrismClick()">
       <div class="hud-icon" style="filter: drop-shadow(0 0 7px rgba(217,70,239,.85));">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#d946ef" stroke-width="2.2" stroke-linejoin="round">
           <polygon points="12 2 21 12 12 22 3 12" fill="rgba(217,70,239,.25)"/>
@@ -277,7 +277,7 @@ function logLocally(info) {
 
     <div class="hud-capsule-extra hidden" id="econHpSplitBadge">
       <div class="badge-divider"></div>
-      <div class="badge-half" id="goldHalf" onclick="handleDevGoldClick()">
+      <div class="badge-half" id="goldHalf" onclick="if(typeof handleDevGoldClick==='function') handleDevGoldClick()">
         <div class="hud-icon" style="filter: drop-shadow(0 0 7px rgba(255,145,0,.8));">
           <svg width="15" height="15" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="11" fill="#ff9100" />
@@ -289,7 +289,7 @@ function logLocally(info) {
 
       <div class="badge-divider"></div>
 
-      <div class="badge-half" id="hpHalf" onclick="handleDevHpClick()">
+      <div class="badge-half" id="hpHalf" onclick="if(typeof handleDevHpClick==='function') handleDevHpClick()">
         <div class="hud-icon" style="filter: drop-shadow(0 0 7px rgba(240,95,159,.9));">
           <div style="width:13px; height:12px; background:#f05f9f; clip-path:polygon(50% 100%, 4% 42%, 4% 18%, 26% 2%, 50% 20%, 74% 2%, 96% 18%, 96% 42%);"></div>
         </div>
@@ -305,16 +305,12 @@ function logLocally(info) {
       <div class="badge-half" id="levelHalf">
         <span class="match-val-text hud-static-label" data-i18n="lvl_short">LVL</span>
         <span class="match-val-text" id="levelText">1</span>
-        <!-- [HTM.I] -->
-        <select id="devLevelSelect" class="hud-select-dropdown hidden" onchange="startSpecificLevel(parseInt(this.value, 10))"></select>
       </div>
 
       <span class="match-val-text hud-static-label">·</span>
 
       <div class="badge-half" id="waveHalf">
         <span class="match-val-text" id="waveText">1/2</span>
-        <!-- [HTM.J] -->
-        <select id="devWaveSelect" class="hud-select-dropdown hidden" onchange="devJumpToWave(parseInt(this.value, 10))"></select>
       </div>
     </div>
     <div class="hud-corner-utilities">
@@ -466,204 +462,6 @@ function logLocally(info) {
         </svg>
       </button>
     </div>
-  </div>
-</div>
-
-<!-- Developer Tools Overlay: Developer bar with game speed, custom enemy spawner, and save tools. -->
-<div class="dev-bar hidden" id="devBar" style="width: 210px; max-width: 92vw; box-sizing: border-box;">
-  <div class="dev-bar-top" style="display:flex; align-items:center; justify-content:space-between; gap:3px;">
-    <div class="dev-fps-badge" id="devFpsBadge" style="font-size:11px; min-width:48px;">FPS: 60</div>
-
-    <!-- [HTM.S] -->
-    <button type="button" class="dev-icon-btn dev-speed-step-btn" onclick="stepDevSpeed(-1)" title="Decrease speed">−</button>
-
-    <!-- [HTM.T] -->
-    <select id="speedContainer" class="dev-speed-select" onchange="setGameSpeed(parseFloat(this.value))">
-      <option value="0.5">0.5x</option>
-      <option value="0.75">0.75x</option>
-      <option value="0.9">0.9x</option>
-      <option value="1" selected>1x</option>
-      <option value="1.25">1.25x</option>
-      <option value="1.5">1.5x</option>
-      <option value="2">2x</option>
-      <option value="4">4x</option>
-      <option value="8">8x</option>
-    </select>
-
-    <!-- [HTM.U] -->
-    <button type="button" class="dev-icon-btn dev-speed-step-btn" onclick="stepDevSpeed(1)" title="Increase speed">+</button>
-
-    <!-- [HTM.V] -->
-    <button type="button" class="dev-icon-btn" id="devExpandBtn" onclick="toggleDevPanelExpand()" title="Details">▾</button>
-    <!-- [HTM.W] -->
-    <button type="button" class="dev-icon-btn dev-close-btn" onclick="closeDevMode()" title="Close Dev Mode">✕</button>
-  </div>
-
-  <div class="dev-details-pane hidden" id="devDetailsPane" style="width:100%; box-sizing:border-box; overflow:hidden;">
-    
-<!-- ================= 2 УРОВЕНЬ: GAME ================= -->
-    <div class="dev-spawner-sub" style="margin-top:4px;">
-      <div class="dev-sub-title" onclick="toggleDevSubSection('Game')" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; user-select:none; padding:3px 2px;">
-        <span>▸ GAME</span>
-        <span id="devSubArrowGame">▾</span>
-      </div>
-      <!-- [HTM.X] -->
-      <div id="devSubBodyGame" class="hidden" style="margin-top:4px;">
-        <div class="dev-actions-row" style="display:flex; flex-direction:column; gap:4px;">
-          <!-- [HTM.Y] -->
-          <button type="button" class="dev-btn" id="livePauseBtn" onclick="toggleLivePause()" style="width:100%; font-size:10px; padding:4px;">PAUSE GAME</button>
-          <!-- [HTM.Z] -->
-          <button type="button" class="dev-btn dev-danger-btn" id="devClearSaveBtn" onclick="handleClearSaveClick()" style="width:100%; font-size:10px; padding:4px;">CLEAR SAVE</button>
-        </div>
-
-        <div class="dev-spawner-sub" id="devCustomSpawner" style="margin-top:6px;">
-          <div class="dev-sub-title" style="font-size:9px;">SPAWNER</div>
-          <div style="display:flex; flex-direction:column; gap:4px; margin-top:3px;">
-            <!-- [HTM.AA] -->
-            <select id="devSpawnType" style="width:100%; font-size:11px; box-sizing:border-box;">
-              <option value="grunt">Grunt</option>
-              <option value="scout">Scout</option>
-              <option value="tank">Tank</option>
-              <option value="swarm">Swarm</option>
-              <option value="blinker">Blinker</option>
-              <option value="goliath">Goliath</option>
-              <option value="emp_bomber">EMP Bomber</option>
-              <option value="hive_empress">Boss: Hive</option>
-              <option value="chronos_warp">Boss: Chronos</option>
-              <option value="titan_core">Boss: Titan</option>
-              <option value="emp_overlord">Boss: Overlord</option>
-            </select>
-            <div style="display:flex; gap:4px;">
-              <!-- [HTM.AB] -->
-              <input type="number" id="devSpawnCount" min="1" max="50" value="5" title="Count" style="width:55px; font-size:11px; box-sizing:border-box;">
-              <!-- [HTM.AC] -->
-              <input type="hidden" id="devSpawnInterval" value="0.5">
-              <!-- [HTM.AD] -->
-              <button type="button" class="dev-btn" onclick="devSpawnCustomEnemies()" style="flex:1; font-size:10px; padding:4px;">SPAWN</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ================= 2 УРОВЕНЬ: AUDIO ================= -->
-    <div class="dev-spawner-sub" style="margin-top:4px;">
-      <div class="dev-sub-title" onclick="toggleDevSubSection('Audio')" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; user-select:none; padding:3px 2px;">
-        <span>▸ AUDIO</span>
-        <span id="devSubArrowAudio">▾</span>
-      </div>
-      <!-- [HTM.AE] -->
-      <div id="devSubBodyAudio" class="hidden" style="margin-top:4px; display:flex; flex-direction:column; gap:3px;">
-        <div style="font-size:10px; color:#8ef3ff; word-break:break-all; padding:2px 0;">
-          <b>Track:</b> <span id="devTrackTitle" style="color:#fff;">None</span>
-        </div>
-
-        <!-- 3 уровень: Audio Hardware -->
-        <div style="border-top:1px solid rgba(0,229,255,0.15); padding-top:3px;">
-          <div onclick="toggleDevMetricGroup('AudioHw')" style="cursor:pointer; display:flex; justify-content:space-between; font-size:10px; color:#94a3b8; user-select:none;">
-            <span>• Hardware</span><span id="devMetricArrowAudioHw">▾</span>
-          </div>
-          <pre id="devAudioLogHw" class="dev-audio-log hidden" style="font-size:10px; line-height:1.35; margin:3px 0 0 0; white-space:pre-wrap; overflow-wrap:anywhere;"></pre>
-        </div>
-
-        <!-- 3 уровень: Audio DSP -->
-        <div style="border-top:1px solid rgba(0,229,255,0.15); padding-top:3px;">
-          <div onclick="toggleDevMetricGroup('AudioDsp')" style="cursor:pointer; display:flex; justify-content:space-between; font-size:10px; color:#94a3b8; user-select:none;">
-            <span>• DSP & Nodes</span><span id="devMetricArrowAudioDsp">▾</span>
-          </div>
-          <pre id="devAudioLogDsp" class="dev-audio-log hidden" style="font-size:10px; line-height:1.35; margin:3px 0 0 0; white-space:pre-wrap; overflow-wrap:anywhere;"></pre>
-        </div>
-
-        <!-- 3 уровень: Thread & Memory -->
-        <div style="border-top:1px solid rgba(0,229,255,0.15); padding-top:3px;">
-          <div onclick="toggleDevMetricGroup('AudioMem')" style="cursor:pointer; display:flex; justify-content:space-between; font-size:10px; color:#94a3b8; user-select:none;">
-            <span>• Thread & RAM</span><span id="devMetricArrowAudioMem">▾</span>
-          </div>
-          <pre id="devAudioLogMem" class="dev-audio-log hidden" style="font-size:10px; line-height:1.35; margin:3px 0 0 0; white-space:pre-wrap; overflow-wrap:anywhere;"></pre>
-        </div>
-      </div>
-    </div>
-
-    <!-- ================= 2 УРОВЕНЬ: VERSION & OTA ================= -->
-    <div class="dev-spawner-sub" style="margin-top:4px;">
-      <div class="dev-sub-title" onclick="toggleDevSubSection('Version')" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; user-select:none; padding:3px 2px;">
-        <span>▸ VERSION</span>
-        <span id="devSubArrowVersion">▾</span>
-      </div>
-      <!-- [HTM.AF] -->
-      <div id="devSubBodyVersion" class="hidden" style="margin-top:4px; display:flex; flex-direction:column; gap:3px;">
-
-        <!-- 3 уровень: 1. Версии и Манифест (открыт по умолчанию внутри VERSION) -->
-        <div style="border-top:1px solid rgba(0,229,255,0.15); padding-top:3px;">
-          <div onclick="toggleDevMetricGroup('VerManifest')" style="cursor:pointer; display:flex; justify-content:space-between; font-size:10px; color:#8ef3ff; user-select:none;">
-            <span>• Manifest & Ver</span><span id="devMetricArrowVerManifest">▴</span>
-          </div>
-          <pre id="devVerLogManifest" class="dev-audio-log" style="font-size:10px; line-height:1.35; margin:3px 0 0 0; white-space:pre-wrap; overflow-wrap:anywhere;">Init...</pre>
-        </div>
-
-        <!-- 3 уровень: 2. Скачивание и Применение -->
-        <div style="border-top:1px solid rgba(0,229,255,0.15); padding-top:3px;">
-          <div onclick="toggleDevMetricGroup('VerDownload')" style="cursor:pointer; display:flex; justify-content:space-between; font-size:10px; color:#94a3b8; user-select:none;">
-            <span>• Download & Next</span><span id="devMetricArrowVerDownload">▾</span>
-          </div>
-          <pre id="devVerLogDownload" class="dev-audio-log hidden" style="font-size:10px; line-height:1.35; margin:3px 0 0 0; white-space:pre-wrap; overflow-wrap:anywhere;"></pre>
-        </div>
-
-        <!-- 3 уровень: 3. Состояние плагина и бандлов -->
-        <div style="border-top:1px solid rgba(0,229,255,0.15); padding-top:3px;">
-          <div onclick="toggleDevMetricGroup('VerPlugin')" style="cursor:pointer; display:flex; justify-content:space-between; font-size:10px; color:#94a3b8; user-select:none;">
-            <span>• Plugin & Storage</span><span id="devMetricArrowVerPlugin">▾</span>
-          </div>
-          <pre id="devVerLogPlugin" class="dev-audio-log hidden" style="font-size:10px; line-height:1.35; margin:3px 0 0 0; white-space:pre-wrap; overflow-wrap:anywhere;"></pre>
-        </div>
-
-        <!-- 3 уровень: 4. Логи шагов -->
-        <div style="border-top:1px solid rgba(0,229,255,0.15); padding-top:3px;">
-          <div onclick="toggleDevMetricGroup('VerLogs')" style="cursor:pointer; display:flex; justify-content:space-between; font-size:10px; color:#94a3b8; user-select:none;">
-            <span>• Step Logs</span><span id="devMetricArrowVerLogs">▾</span>
-          </div>
-          <pre id="devVerLogHistory" class="dev-audio-log hidden" style="font-size:9px; line-height:1.3; margin:3px 0 0 0; max-height:95px; overflow-y:auto; white-space:pre-wrap; overflow-wrap:anywhere;"></pre>
-        </div>
-
-        <div class="dev-actions-row" style="display:flex; gap:4px; margin-top:4px;">
-          <!-- [HTM.AG] -->
-          <button type="button" class="dev-btn" onclick="window.ResourceSync && window.ResourceSync.init()" style="flex:1; font-size:9px; padding:4px 2px;">CHECK</button>
-          <!-- [HTM.AH] -->
-          <button type="button" class="dev-btn" onclick="window.ResourceSync && window.ResourceSync.forceApplyNow()" style="flex:1; font-size:9px; padding:4px 2px;">APPLY NOW</button>
-        </div>
-      </div>
-    <!-- ================= 2 УРОВЕНЬ: ADS ================= -->
-    <div class="dev-spawner-sub" style="margin-top:4px;">
-      <div class="dev-sub-title" onclick="toggleDevSubSection('Ads')" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; user-select:none; padding:3px 2px;">
-        <span>▸ ADS</span>
-        <span id="devSubArrowAds">▾</span>
-      </div>
-      <div id="devSubBodyAds" class="hidden" style="margin-top:4px; display:flex; flex-direction:column; gap:3px;">
-
-        <!-- 3 уровень: Состояние плагина и предзагрузки -->
-        <div style="border-top:1px solid rgba(0,229,255,0.15); padding-top:3px;">
-          <div onclick="toggleDevMetricGroup('AdStatus')" style="cursor:pointer; display:flex; justify-content:space-between; font-size:10px; color:#8ef3ff; user-select:none;">
-            <span>• Plugin & Status</span><span id="devMetricArrowAdStatus">▴</span>
-          </div>
-          <pre id="devAdLogStatus" class="dev-audio-log" style="font-size:10px; line-height:1.35; margin:3px 0 0 0; white-space:pre-wrap; overflow-wrap:anywhere;">Init...</pre>
-        </div>
-
-        <!-- 3 уровень: История логов и событий -->
-        <div style="border-top:1px solid rgba(0,229,255,0.15); padding-top:3px;">
-          <div onclick="toggleDevMetricGroup('AdLogs')" style="cursor:pointer; display:flex; justify-content:space-between; font-size:10px; color:#94a3b8; user-select:none;">
-            <span>• Events & Errors</span><span id="devMetricArrowAdLogs">▾</span>
-          </div>
-          <pre id="devAdLogHistory" class="dev-audio-log hidden" style="font-size:9px; line-height:1.3; margin:3px 0 0 0; max-height:85px; overflow-y:auto; white-space:pre-wrap; overflow-wrap:anywhere;">No events yet</pre>
-        </div>
-
-        <div class="dev-actions-row" style="display:flex; gap:4px; margin-top:4px;">
-          <button type="button" class="dev-btn" onclick="devPreloadRewardAd()" style="flex:1; font-size:9px; padding:4px 2px;">PRELOAD</button>
-          <button type="button" class="dev-btn" onclick="devShowRewardAd()" style="flex:1; font-size:9px; padding:4px 2px;">SHOW AD</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   </div>
 </div>
 
@@ -861,7 +659,7 @@ function logLocally(info) {
         </button>
       </div>
       
-<div class="shop-card locked-item" id="shopPerkTimeT2Card">
+      <div class="shop-card locked-item" id="shopPerkTimeT2Card">
         <div class="shop-card-left">
           <div class="shop-card-icon cyan-glow">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--neon-primary, #00e5ff)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -885,7 +683,7 @@ function logLocally(info) {
       <!-- Секция 3: Обмен валюты -->
       <div class="upgrades-row-group-label" data-i18n="currency_exchange">Currency Exchange</div>
       
-<div class="shop-card" id="synthPrismCard">
+      <div class="shop-card" id="synthPrismCard">
         <div class="shop-card-left">
           <div class="shop-card-icon prism-glow">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d946ef" stroke-width="2.2" stroke-linejoin="round">
@@ -906,7 +704,7 @@ function logLocally(info) {
         </button>
       </div>
       
-<div class="shop-card" id="deconstructPrismCard">
+      <div class="shop-card" id="deconstructPrismCard">
         <div class="shop-card-left">
           <div class="shop-card-icon diamond-glow">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2" stroke-linejoin="round">
@@ -988,7 +786,7 @@ function logLocally(info) {
       </div>
     </div>
     
-<!-- [HTM.AZ] -->
+    <!-- [HTM.AZ] -->
     <button class="menu-btn-glass-capsule upgrades-back-btn" onclick="closeShopScreen()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="19" y1="12" x2="5" y2="12"></line>
@@ -998,6 +796,7 @@ function logLocally(info) {
     </button>
   </div>
 </div>
+
 <div class="overlay-screen result-screen hidden" id="settingsScreen">
   <div class="result-stack">
     <div class="result-heading seq-in">
@@ -1005,7 +804,7 @@ function logLocally(info) {
       <div class="result-title" id="settingsTitle" data-i18n="paused_title">Paused</div>
     </div>
     
-<div class="settings-combat-actions hidden" id="settingsCombatActions">
+    <div class="settings-combat-actions hidden" id="settingsCombatActions">
       <!-- [HTM.BA] -->
       <button class="result-btn-pill result-btn-resume" onclick="closeSettings()">
         <svg class="resume-play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1082,7 +881,7 @@ function logLocally(info) {
             </div>
             <!-- [HTM.BH] -->
             <input type="range" class="vol-range" id="settingMusicVol" min="0" max="100" step="5" value="70"
-                   oninput="setMusicVolume(this.value)">
+              oninput="setMusicVolume(this.value)">
           </div>
           <div class="setting-row setting-row-slider">
             <div class="setting-slider-head">
@@ -1091,7 +890,7 @@ function logLocally(info) {
             </div>
             <!-- [HTM.BI] -->
             <input type="range" class="vol-range" id="settingSfxVol" min="0" max="100" step="5" value="100"
-                   oninput="setSfxVolume(this.value)">
+              oninput="setSfxVolume(this.value)">
           </div>
           <div class="setting-row">
             <span data-i18n="visual">Visual</span>
@@ -1356,12 +1155,6 @@ function logLocally(info) {
           <span>)</span>
         </button>
       </div>
-      <div class="bp-dev-controls hidden" id="bpDevControls">
-        <!-- [HTM.BZ] -->
-        <button class="bp-dev-btn" onclick="devAddBpXp(100)">+100 BP XP</button>
-        <!-- [HTM.CA] -->
-        <button class="bp-dev-btn" onclick="devToggleBpPremium()">TOGGLE PREMIUM</button>
-      </div>
     </div>
 
     <!-- 30 tiers scrollable list -->
@@ -1486,7 +1279,7 @@ function logLocally(info) {
       </div>
     </div>
     
-<!-- [HTM.CH] -->
+    <!-- [HTM.CH] -->
     <button class="result-btn victory-claim-btn seq-in seq-d4" id="claimX2Btn" onclick="claimX2Reward()">
       <svg width="18" height="15" viewBox="0 0 16 13" fill="none" style="flex:none; margin-right:6px;"><rect x="0.8" y="0.8" width="14.4" height="11.4" rx="2.5" fill="none" stroke="#ffffff" stroke-width="1.6"/><polygon points="6,3.5 11,6.5 6,9.5" fill="#ffffff"/></svg>
       <span data-i18n="claim_x2">CLAIM x2</span>
@@ -1551,7 +1344,7 @@ function logLocally(info) {
     </div>
     <div class="result-subline seq-in seq-d1" id="defeatWaveLine">WAVE 1 OF 1 REACHED</div>
     
-<div class="endless-rewards-box hidden" id="endlessRewardsBox" style="margin: 8px 0; text-align: center;">
+    <div class="endless-rewards-box hidden" id="endlessRewardsBox" style="margin: 8px 0; text-align: center;">
       <div class="endless-record-badge hidden" id="endlessNewRecordBadge" style="font-family: 'Montserrat', sans-serif; font-size: 13px; font-weight: 900; color: #f05f9f; text-shadow: 0 0 10px #f05f9f; margin-bottom: 6px;" data-i18n="new_record">
         ★ NEW RECORD! ★
       </div>
@@ -1683,9 +1476,6 @@ window.addEventListener('popstate', () => {
   history.pushState({ sectorDefenseTD: true }, '');
 });
 
-const devCheckboxEl = document.getElementById('devModeCheckbox');
-const initialDevState = devCheckboxEl ? devCheckboxEl.checked : false;
-
 loadGame().then(() => {
   if (typeof detectInitialLanguage === 'function') {
     setLanguage(detectInitialLanguage(), false);
@@ -1713,7 +1503,6 @@ loadGame().then(() => {
   
   applyPaletteColors(activePalette || 'default');
   initBuildPanel();
-  toggleDevMode(initialDevState);
   updateDiamondUI();
   updatePrismUI();
   showStartScreen();
@@ -1753,29 +1542,29 @@ loadGame().then(() => {
   <div class="tutorial-pointer hidden" id="tutorialPointer">
     <svg width="44" height="44" viewBox="-6 -6 40 40" fill="none" style="overflow: visible; filter: drop-shadow(0 0 6px var(--neon-glow, rgba(0, 229, 255, 0.9)));">
       <path d="M -3 3 A 4.5 4.5 0 0 1 3 -3" 
-stroke="var(--neon-primary, #00e5ff)" stroke-width="2.2" stroke-linecap="round"/>
+            stroke="var(--neon-primary, #00e5ff)" stroke-width="2.2" stroke-linecap="round"/>
       <path d="M 0 0 
-L 8 8 
-C 8.8 8.8, 9.8 8.5, 10.4 7.9 
-C 11 7.3, 11 6.3, 10.3 5.5 
-L 6.5 1.5 
-C 7.5 0.5, 9 0.5, 10 1.5 
-L 12.5 4 
-C 13.5 3.2, 14.8 3.5, 15.5 4.5 
-C 16.2 4, 17.5 4.3, 18 5.2 
-C 18.5 6, 25 12.5, 25 15.5 
-C 25 21, 20.5 24, 14 24 
-L 3 24 
-C 1 24, 0 22.5, 1 21 
-C 2 19.5, 7.5 19, 9 18.5 
-L 0 7 
-C -1.2 5.8, -1.2 3.8, 0 2.6 
-Z" 
-fill="rgba(4, 8, 18, 0.92)" 
-stroke="var(--neon-primary, #00e5ff)" 
-stroke-width="2.2" 
-stroke-linecap="round" 
-stroke-linejoin="round"/>
+               L 8 8 
+               C 8.8 8.8, 9.8 8.5, 10.4 7.9 
+               C 11 7.3, 11 6.3, 10.3 5.5 
+               L 6.5 1.5 
+               C 7.5 0.5, 9 0.5, 10 1.5 
+               L 12.5 4 
+               C 13.5 3.2, 14.8 3.5, 15.5 4.5 
+               C 16.2 4, 17.5 4.3, 18 5.2 
+               C 18.5 6, 25 12.5, 25 15.5 
+               C 25 21, 20.5 24, 14 24 
+               L 3 24 
+               C 1 24, 0 22.5, 1 21 
+               C 2 19.5, 7.5 19, 9 18.5 
+               L 0 7 
+               C -1.2 5.8, -1.2 3.8, 0 2.6 
+               Z" 
+            fill="rgba(4, 8, 18, 0.92)" 
+            stroke="var(--neon-primary, #00e5ff)" 
+            stroke-width="2.2" 
+            stroke-linecap="round" 
+            stroke-linejoin="round"/>
     </svg>
   </div>
   <div class="tutorial-bubble hidden" id="tutorialBubble"><span id="tutorialBubbleText"></span></div>
