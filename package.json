@@ -1,6 +1,6 @@
 {
   "name": "synth-wave-defense",
-  "version": "1.38.36",
+  "version": "1.38.41",
   "description": "Synth Wave Defense Production",
   "main": "index.js",
   "type": "commonjs",

@@ -6964,3 +6964,30 @@ body:not([data-theme="default"]) .bp-btn-buy-tier {
   border-color: var(--c1);
   color: #ffffff;
 }
+
+/* [STY.GC] */
+#levelsScreen,
+.upgrades-row-list,
+.overlay-screen {
+  overscroll-behavior: none;
+}
+
+#levelsCampaignView,
+#endlessDashboardView {
+  touch-action: pan-y;
+}
+
+button,
+.interactive-btn,
+.levels-main-menu-btn,
+.part-nav-btn,
+.level-card-btn,
+.mode-3way-tab,
+.level-btn,
+.synth-pass-widget,
+.loadout-widget-header,
+.settings-collapsible-header,
+.tactical-tips-widget {
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent;
+}
