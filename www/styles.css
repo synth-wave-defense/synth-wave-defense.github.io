@@ -4425,7 +4425,8 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   -webkit-tap-highlight-color: transparent !important;
 }
 
-.result-btn-pill:active {
+.result-btn-pill:active,
+.result-btn-pill.btn-pushed {
   transform: scale(0.92) translateY(2px) !important;
   border-color: var(--neon-primary, #00e5ff) !important;
   color: #ffffff !important;
@@ -4433,30 +4434,31 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   background: rgba(14, 22, 44, 0.95) !important;
 }
 
-/* Фиксированная системная оранжевая кнопка RESUME по GDTRD */
+/* Кнопка RESUME в меню паузы: основной стиль капсулы под цвет темы (--c1), как RETRY */
 .result-btn-resume {
-  background: linear-gradient(135deg, rgba(255, 145, 0, 0.38) 0%, rgba(255, 145, 0, 0.18) 50%, rgba(255, 145, 0, 0.38) 100%), rgba(10, 14, 26, 0.88) !important;
-  border: 1.8px solid #ff9100 !important;
+  background: linear-gradient(180deg, rgba(var(--c1-rgb, 0, 229, 255), 0.14) 0%, rgba(8, 12, 24, 0.82) 100%) !important;
+  border: 1.5px solid var(--c1, #00e5ff) !important;
   color: #ffffff !important;
   font-weight: 900 !important;
-  box-shadow: 0 0 22px rgba(255, 145, 0, 0.45), inset 0 0 12px rgba(255, 145, 0, 0.22) !important;
-  text-shadow: 0 0 12px #ff9100 !important;
+  box-shadow: 0 0 16px rgba(var(--c1-rgb, 0, 229, 255), 0.22), inset 0 0 8px rgba(var(--c1-rgb, 0, 229, 255), 0.08) !important;
 }
 
-.result-btn-resume:active {
+.result-btn-resume:active,
+.result-btn-resume.btn-pushed {
   transform: scale(0.92) translateY(2px) !important;
-  background: linear-gradient(135deg, rgba(255, 145, 0, 0.58) 0%, rgba(255, 145, 0, 0.28) 50%, rgba(255, 145, 0, 0.58) 100%), rgba(14, 20, 36, 0.95) !important;
-  border-color: #ffc166 !important;
-  box-shadow: 0 0 34px rgba(255, 145, 0, 0.85), inset 0 0 16px rgba(255, 145, 0, 0.4) !important;
+  background: rgba(14, 24, 48, 0.92) !important;
+  border-color: var(--c1-light, #8ef3ff) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 26px rgba(var(--c1-rgb, 0, 229, 255), 0.7), inset 0 0 12px rgba(var(--c1-rgb, 0, 229, 255), 0.3) !important;
 }
 
 .result-btn-resume .resume-play-icon {
-  color: #ff9100 !important;
-  filter: drop-shadow(0 0 6px #ff9100) !important;
+  color: var(--c1, #00e5ff) !important;
+  filter: drop-shadow(0 0 6px rgba(var(--c1-rgb, 0, 229, 255), 0.75)) !important;
 }
 
 .result-btn-retry {
-  color: #dff9ff !important;
+  color: #ffffff !important;
 }
 
 .result-btn-giveup {
@@ -4464,6 +4466,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   border-color: rgba(240, 95, 159, 0.45) !important;
   font-weight: 900 !important;
 }
+
 /* [STY.DL] */
 .result-btn-giveup:active {
   border-color: #f05f9f !important;
@@ -6643,6 +6646,7 @@ body:not([data-theme="default"]) .bp-btn-buy-tier {
   border-color: var(--c2) !important;
   box-shadow: 0 0 12px rgba(var(--c2-rgb), 0.38) !important;
 }
+
 /* [STY.FU] */
 .shop-card-prism {
   background: linear-gradient(135deg, rgba(var(--c2-rgb), 0.14), rgba(12, 8, 22, 0.85));
@@ -6654,18 +6658,6 @@ body:not([data-theme="default"]) .bp-btn-buy-tier {
 .shop-btn-prism {
   background: rgba(var(--c2-rgb), 0.16);
   border-color: rgba(var(--c2-rgb), 0.5);
-}
-
-/* Кнопка ПРОДОЛЖИТЬ (Resume) в паузе: убираем жесткую бирюзовую заливку и привязываем к теме (--c4 / --c1) */
-.result-btn-resume {
-  background: linear-gradient(135deg, rgba(var(--c4-rgb, 255, 145, 0), 0.35) 0%, rgba(var(--c4-rgb, 255, 145, 0), 0.14) 50%, rgba(var(--c4-rgb, 255, 145, 0), 0.35) 100%), rgba(10, 12, 22, 0.92) !important;
-  border: 1.8px solid var(--c4, #ff9100) !important;
-  box-shadow: 0 0 20px rgba(var(--c4-rgb, 255, 145, 0), 0.42), inset 0 0 10px rgba(var(--c4-rgb, 255, 145, 0), 0.18) !important;
-  color: #ffffff !important;
-}
-.result-btn-resume .resume-play-icon {
-  color: var(--c4, #ff9100) !important;
-  filter: drop-shadow(0 0 6px rgba(var(--c4-rgb, 255, 145, 0), 0.85)) !important;
 }
 
 /* 8. АККОРДЕОНЫ SETTINGS И LOADOUT (нейтральный темный обсидиан без бирюзовой заливки) */
@@ -6681,6 +6673,7 @@ body:not([data-theme="default"]) .bp-btn-buy-tier {
 .settings-collapsible-arrow {
   color: var(--c1-light) !important;
 }
+
 /* [STY.FV] */
 .loadout-widget-count {
   background: rgba(var(--c1-rgb), 0.16);
@@ -6734,12 +6727,29 @@ body:not([data-theme="default"]) .bp-btn-buy-tier {
   background: linear-gradient(rgba(var(--c1-rgb), 0.28), rgba(var(--c1-rgb), 0.08)), rgba(8, 12, 24, 0.92);
   border-color: var(--c1);
 }
+
 /* 10. КНОПКА GO НА ЛОАДЕРЕ И .shop-btn-free ПОД ЦВЕТ ТЕМЫ (--c1) */
 .shop-btn-free {
   background: linear-gradient(180deg, rgba(var(--c1-rgb), 0.36) 0%, rgba(var(--c1-rgb), 0.14) 100%) !important;
   border: 1.4px solid var(--c1) !important;
   color: #ffffff !important;
   box-shadow: 0 0 14px rgba(var(--c1-rgb), 0.4) !important;
+  transition: transform 0.06s ease-out, background 0.06s ease-out, border-color 0.06s ease-out, box-shadow 0.06s ease-out !important;
+}
+
+.shop-btn-free:active:not(:disabled),
+.shop-btn-free.btn-pushed:not(:disabled) {
+  transform: scale(0.92) translateY(2px) !important;
+  border-color: var(--c1-light) !important;
+  box-shadow: 0 0 36px rgba(var(--c1-rgb), 0.9), inset 0 0 14px rgba(var(--c1-rgb), 0.4) !important;
+  background: linear-gradient(180deg, rgba(var(--c1-rgb), 0.56) 0%, rgba(var(--c1-rgb), 0.24) 100%) !important;
+}
+
+#initialLoadingScreen .shop-btn-free:active,
+#initialLoadingScreen .shop-btn-free.btn-pushed {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: translateX(-50%) scale(0.92) translateY(2px) !important;
 }
 
 @keyframes goBtnPulse {
@@ -6752,8 +6762,8 @@ body:not([data-theme="default"]) .bp-btn-buy-tier {
     transform: translateX(-50%) scale(1.02);
   }
 }
-/* [STY.FY] */
 
+/* [STY.FY] */
 /* 11. КАСТОМНАЯ ВЫПАДАШКА VISUAL В СТИЛЕ ИГРЫ */
 .bp-header-card,
 .bp-header-top,
