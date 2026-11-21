@@ -5,7 +5,7 @@
 <head>
   <meta charset="UTF-8">
   <script>
-    window.APP_VERSION = '1.38.48';
+    window.APP_VERSION = '1.38.55';
     window.__APP_STAGE__ = 'production';
     if (false && window.location.hostname !== 'synth-wave-defense.github.io') {
       const s = document.createElement("script");
@@ -874,6 +874,14 @@
               <span class="slider"></span>
             </label>
           </div>
+          <div class="setting-row">
+            <span data-i18n="screen_shake">Screen Shake</span>
+            <label class="switch">
+              <!-- [HTM.BGM] -->
+              <input type="checkbox" id="settingScreenShake" checked onchange="toggleSettingScreenShake(this.checked)">
+              <span class="slider"></span>
+            </label>
+          </div>
           <div class="setting-row setting-row-slider">
             <div class="setting-slider-head">
               <span data-i18n="music_audio">Music Audio</span>
@@ -948,7 +956,14 @@
   </div>
 
   <!-- Dynamic Mode Art Banner -->
-  <div class="mode-art-display" id="modeArtDisplay"></div>
+  <!-- [HTM.BNM] -->
+  <div class="mode-art-display" id="modeArtDisplay">
+    <div class="mode-preview-stage" id="modePreviewStage">
+      <canvas id="modePreviewCanvas"></canvas>
+      <div class="mode-preview-tint" id="modePreviewTint"></div>
+      <div class="mode-preview-dimmer"></div>
+    </div>
+  </div>
 
   <!-- Content View Zone -->
   <div class="levels-content-zone" id="levelsContentZone">
